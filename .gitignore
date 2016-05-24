@@ -30,3 +30,8 @@
 
 # Debug files
 *.dSYM/
+
+# Folders to ignore
+/build
+/output
+/release
