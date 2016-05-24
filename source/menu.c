@@ -86,7 +86,7 @@ void DrawMenu(MenuInfo* currMenu, u32 index, bool fullDraw, bool subMenu)
     bool top_screen = true;
     u32 menublock_x0 = (top_screen) ? 76 : 36;
     u32 menublock_x1 = (top_screen) ? 76 : 36;
-    u32 menublock_y0 = 40;
+    u32 menublock_y0 = 60;
     u32 menublock_y1 = menublock_y0 + currMenu->n_entries * 10;
     
     if (fullDraw) { // draw full menu
