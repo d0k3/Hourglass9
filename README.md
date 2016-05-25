@@ -18,7 +18,6 @@ The most important controls are displayed on screen, here is a list of all:
 * __DOWN__/__UP__ - Navigate menus, scroll output, select between options.
 * __A__ - Enter submenu or confirm action.
 * __B__ - Depending on location, leave submenu or cancel.
-* __L/R__ - Switch between submenus (first level submenu only).
 * __X__ - Make a screenshot. Works in menu and on console output, after a feature finishes.
 * __X + LEFT/RIGHT__ - Batch screenshot all submenus / entries (only on menu)
 * __SELECT__ - Unmount SD card (only on menu).
@@ -27,7 +26,7 @@ The most important controls are displayed on screen, here is a list of all:
 Most features require the user to choose a file or a directory. In these cases, use the arrow keys to select and A / B to confirm and cancel.
 
 ## License
-You may use this under the terms of the GNE General Public License GPL v2 or under the terms of any later revisions of the GPL. Refer to the provided `LICENSE.txt` file for further information.
+You may use this under the terms of the GNU General Public License GPL v2 or under the terms of any later revisions of the GPL. Refer to the provided `LICENSE.txt` file for further information.
 
 ## Credits
 * smealum, plutoo, derrek for giving the world the gift of arm9loaderhax
