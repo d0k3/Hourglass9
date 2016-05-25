@@ -140,7 +140,7 @@ u32 ProcessEntry(MenuEntry* entry)
         DebugClear();
         Debug("You selected \"%s\".", entry->name);
         Debug("This feature writes to the %s.", (emunand) ? "EmuNAND" : "SysNAND");
-        Debug("Doing this is potentially dangerous!");
+        Debug("Data will be overwriten, keep backups!");
         Debug("");
         Debug("If you wish to proceed, enter:");
         Debug((emunand) ? "<Left>, <Right>, <Down>, <Up>, <A>" : "<Left>, <Up>, <Right>, <Up>, <A>");
