@@ -101,7 +101,7 @@ u32 InitializeH9()
     Debug("Checking arm9loaderhax... %s", (*(vu32*) 0x101401C0) ? "failed" : "success");
     if (InitFS()) {
         Debug("Initializing SD card... success");
-        FileGetData("d9logo.bin", BOT_SCREEN0, 320 * 240 * 3, 0);
+        FileGetData("h9logo.bin", BOT_SCREEN0, 320 * 240 * 3, 0);
         memcpy(BOT_SCREEN1, BOT_SCREEN0, 320 * 240 * 3);
         if (SetupTwlKey0x03() != 0) // TWL KeyX / KeyY
             errorlevel = 2;
