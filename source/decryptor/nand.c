@@ -25,7 +25,7 @@
 #define IS_NAND_HEADER(hdr) ((memcmp(buffer + 0x100, nand_magic_n3ds, 0x60) == 0) ||\
                              (memcmp(buffer + 0x100, nand_magic_o3ds, 0x60) == 0))
 
-// from an actual N3DS NCSD NAND header, same for all
+// from an actual N3DS NCSD NAND header (@0x100), same for all
 static u8 nand_magic_n3ds[0x60] = {
     0x4E, 0x43, 0x53, 0x44, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x01, 0x04, 0x03, 0x03, 0x01, 0x00, 0x00, 0x00, 0x01, 0x02, 0x02, 0x02, 0x03, 0x00, 0x00, 0x00,
@@ -35,7 +35,7 @@ static u8 nand_magic_n3ds[0x60] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-// from an actual O3DS NCSD NAND header, same for all
+// from an actual O3DS NCSD NAND header (@0x100), same for all
 static u8 nand_magic_o3ds[0x60] = {
     0x4E, 0x43, 0x53, 0x44, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x01, 0x04, 0x03, 0x03, 0x01, 0x00, 0x00, 0x00, 0x01, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00,
@@ -43,6 +43,15 @@ static u8 nand_magic_o3ds[0x60] = {
     0x80, 0x89, 0x05, 0x00, 0x00, 0x20, 0x00, 0x00, 0x80, 0xA9, 0x05, 0x00, 0x00, 0x20, 0x00, 0x00,
     0x80, 0xC9, 0x05, 0x00, 0x80, 0xAE, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+// encrypted version inside the NCSD NAND header (@0x1BE), same for all
+static u8 twl_mbr[0x42] = {
+    0x00, 0x04, 0x18, 0x00, 0x06, 0x01, 0xA0, 0x3F, 0x97, 0x00, 0x00, 0x00, 0xA9, 0x7D, 0x04, 0x00,
+    0x00, 0x04, 0x8E, 0x40, 0x06, 0x01, 0xA0, 0xC3, 0x8D, 0x80, 0x04, 0x00, 0xB3, 0x05, 0x01, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x55, 0xAA
 };
 
 // see: http://3dbrew.org/wiki/Flash_Filesystem
@@ -179,7 +188,7 @@ static inline int WriteNandSectors(u32 sector_no, u32 numsectors, u8 *in)
     } else return sdmmc_nand_writesectors(sector_no, numsectors, in);
 }
 
-static u32 CheckNandHeader(u8* header) {
+static u32 CheckNandHeaderType(u8* header) {
     u8 lheader[0x200];
     
     if (header != NULL)
@@ -196,7 +205,46 @@ static u32 CheckNandHeader(u8* header) {
     return NAND_HDR_UNK;
 }
 
-static u32 CheckFirmSize(const u8* firm, u32 f_size) {
+static u32 CheckNandHeaderIntegrity(u8* header) {
+    
+    if (!header)
+        return 1;
+    
+    // check header type
+    if (CheckNandHeaderType(header) == NAND_HDR_UNK) {
+        Debug("NAND header not recognized");
+        return 1;
+    }
+    
+    // check if header belongs to console via TWL MBR decryption
+    u8 dec_mbr_block[0xA0];
+    PartitionInfo* twln = GetPartitionInfo(P_TWLN);
+    CryptBufferInfo info = {.keyslot = twln->keyslot, .setKeyY = 0, .size = 0xA0, .buffer = dec_mbr_block, .mode = twln->mode};
+    GetNandCtr(info.ctr, 0x160);
+    memcpy(dec_mbr_block, header + 0x160, 0xA0);
+    CryptBuffer(&info);
+    if (memcmp(dec_mbr_block + 0x5E, twl_mbr, 0x42) != 0) {
+        Debug("NAND header is corrupt or from another 3DS");
+        return 1;
+    }
+    
+    // compare with current header
+    if (!emunand_header) { // only for SysNAND
+        u8 curr_header[0x200];
+        if (ReadNandSectors(0, 1, curr_header) != 0)
+            return 1;
+        // first make sure current header has same mbr crypto
+        if ((memcmp(curr_header + 0x1BE, header + 0x1BE, 42) == 0) &&
+            (memcmp(curr_header, header, 0x200) != 0)) {
+            Debug("NAND header is corrupt");
+            return 1;
+        }
+    }
+    
+    return 0;
+}
+
+u32 CheckFirmSize(const u8* firm, u32 f_size) {
     // returns firm size if okay, 0 otherwise
     u32 f_actualsize = 0;
     if (f_size < 0x100)
@@ -234,7 +282,7 @@ static u32 CheckFirmSize(const u8* firm, u32 f_size) {
     return f_actualsize;
 }
 
-static u32 CheckNandDumpIntegrity(const char* path) {
+static u32 CheckNandDumpIntegrity(const char* path, bool check_firm) {
     u8 header[0x200];
     u32 nand_hdr_type = NAND_HDR_UNK;
     
@@ -253,11 +301,20 @@ static u32 CheckNandDumpIntegrity(const char* path) {
         FileClose();
         return 1;
     }
-    nand_hdr_type = CheckNandHeader(header);
-    if ((nand_hdr_type == NAND_HDR_UNK) || (GetUnitPlatform() == PLATFORM_3DS && (nand_hdr_type != NAND_HDR_O3DS))) {
+    // header type check
+    nand_hdr_type = CheckNandHeaderType(header);
+    if ((nand_hdr_type == NAND_HDR_UNK) || ((GetUnitPlatform() == PLATFORM_3DS) && (nand_hdr_type != NAND_HDR_O3DS))) {
         FileClose();
         Debug("NAND header not recognized");
         return 1;
+    }
+    // header integrity check - skip for O3DS headers on N3DS
+    if (!((GetUnitPlatform() == PLATFORM_N3DS) && (nand_hdr_type == NAND_HDR_O3DS))) {
+        if (CheckNandHeaderIntegrity(header) != 0) {
+            FileClose();
+            Debug("NAND header integrity check failed!");
+            return 1;
+        }
     }
     
     // magic number / crypto check
@@ -285,35 +342,37 @@ static u32 CheckNandDumpIntegrity(const char* path) {
     }
     
     // firm hash check
-    for (u32 f_num = 0; f_num < 2; f_num++) {
-        u8* firm = BUFFER_ADDRESS;
-        PartitionInfo* partition = partitions + 3 + f_num;
-        CryptBufferInfo info = {.keyslot = partition->keyslot, .setKeyY = 0, .size = 0x200, .buffer = firm, .mode = partition->mode};
-        if ((GetNandCtr(info.ctr, partition->offset) != 0) || (!DebugFileRead(firm, 0x200, partition->offset))) {
-            FileClose();
-            return 1;
-        }
-        CryptBuffer(&info);
-        u32 firm_size = CheckFirmSize(firm, 0x200); // check the first 0x200 byte to get actual size
-        if (firm_size != 0) { // check the remaining bytes
-            info.buffer = firm + 0x200;
-            info.size = firm_size - 0x200;
-            if ((!DebugFileRead(firm + 0x200, firm_size - 0x200, partition->offset + 0x200))) {
+    if (check_firm) {
+        for (u32 f_num = 0; f_num < 2; f_num++) {
+            u8* firm = BUFFER_ADDRESS;
+            PartitionInfo* partition = partitions + 3 + f_num;
+            CryptBufferInfo info = {.keyslot = partition->keyslot, .setKeyY = 0, .size = 0x200, .buffer = firm, .mode = partition->mode};
+            if ((GetNandCtr(info.ctr, partition->offset) != 0) || (!DebugFileRead(firm, 0x200, partition->offset))) {
                 FileClose();
                 return 1;
             }
             CryptBuffer(&info);
-            firm_size = CheckFirmSize(firm, firm_size);
-        }
-        
-        if (firm_size == 0) {
-            if (f_num == 0) {
-                Debug("FIRM0 is corrupt (non critical)");
-                Debug("(this is expected with a9lh)");
-            } else {
-                Debug("FIRM%i is corrupt", f_num);
-                FileClose();
-                return 1;
+            u32 firm_size = CheckFirmSize(firm, 0x200); // check the first 0x200 byte to get actual size
+            if (firm_size != 0) { // check the remaining bytes
+                info.buffer = firm + 0x200;
+                info.size = firm_size - 0x200;
+                if ((!DebugFileRead(firm + 0x200, firm_size - 0x200, partition->offset + 0x200))) {
+                    FileClose();
+                    return 1;
+                }
+                CryptBuffer(&info);
+                firm_size = CheckFirmSize(firm, firm_size);
+            }
+            
+            if (firm_size == 0) {
+                if ((f_num == 0) && ((*(vu32*) 0x101401C0) == 0)) {
+                    Debug("FIRM0 is corrupt (non critical)");
+                    Debug("(this is expected with a9lh)");
+                } else {
+                    Debug("FIRM%i is corrupt", f_num);
+                    FileClose();
+                    return 1;
+                }
             }
         }
     }
@@ -495,7 +554,7 @@ PartitionInfo* GetPartitionInfo(u32 partition_id)
     u32 partition_num = 0;
     
     if (partition_id == P_CTRNAND) {
-        partition_num = (GetUnitPlatform() == PLATFORM_3DS) ? 5 : (CheckNandHeader(NULL) == NAND_HDR_N3DS) ? 6 : 7;
+        partition_num = (GetUnitPlatform() == PLATFORM_3DS) ? 5 : (CheckNandHeaderType(NULL) == NAND_HDR_N3DS) ? 6 : 7;
     } else {
         for(; !(partition_id & (1<<partition_num)) && (partition_num < 32); partition_num++);
     }
@@ -683,7 +742,7 @@ u32 RestoreNand(u32 param)
     // safety checks
     if (!(param & NR_NOCHECKS)) {
         Debug("Validating NAND dump %s...", filename);
-        if (CheckNandDumpIntegrity(filename) != 0)
+        if (CheckNandDumpIntegrity(filename, !(param & NR_KEEPA9LH)) != 0)
             return 1;
     }
     
@@ -768,7 +827,7 @@ u32 ValidateNandDump(u32 param)
     if (InputFileNameSelector(filename, "NAND.bin", NULL, NULL, 0, NAND_MIN_SIZE, true) != 0)
         return 1;
     Debug("Validating NAND dump %s...", filename);
-    if (CheckNandDumpIntegrity(filename) != 0)
+    if (CheckNandDumpIntegrity(filename, true) != 0)
         return 1;
     
     return 0;
