@@ -49,6 +49,9 @@ bool GetFileList(const char* path, char* list, int lsize, bool recursive, bool i
 /** Quickly opens a secondary file, gets some data, and closes it again **/
 size_t FileGetData(const char* path, void* buf, size_t size, size_t foffset);
 
+/** Quickly opens a secondary file, dumps some data, and closes it again **/
+size_t FileDumpData(const char* path, void* buf, size_t size);
+
 /** Writes text to a constantly open log file **/
 size_t LogWrite(const char* text);
 

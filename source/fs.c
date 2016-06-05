@@ -310,6 +310,24 @@ size_t FileGetData(const char* path, void* buf, size_t size, size_t foffset)
     return 0;
 }
 
+size_t FileDumpData(const char* path, void* buf, size_t size)
+{
+    unsigned flags = FA_WRITE | FA_CREATE_ALWAYS;
+    FIL tmp_file;
+    UINT bytes_written = 0;;
+    bool res = false;
+    if (*path == '/')
+        path++;
+    if (f_open(&tmp_file, path, flags) != FR_OK)
+        return 0;
+    f_lseek(&tmp_file, 0);
+    f_sync(&tmp_file);
+    res = (f_write(&tmp_file, buf, size, &bytes_written) == FR_OK);
+    f_close(&tmp_file);
+    
+    return (res) ? bytes_written : 0;
+}
+
 size_t LogWrite(const char* text)
 {
     #ifdef LOG_FILE
