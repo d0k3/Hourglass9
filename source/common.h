@@ -33,6 +33,10 @@
 #define getle64(d) (*((u64*) (d)))
 #define align(v,a) \
     (((v) % (a)) ? ((v) + (a) - ((v) % (a))) : (v))
+
+// standard work area, size must be a multiple of 0x200 (512)
+#define BUFFER_ADDRESS  ((u8*) 0x21000000)
+#define BUFFER_MAX_SIZE ((u32) (1 * 1024 * 1024))
     
 // work files / directories
 #define VERSION_NAME "Hourglass9 v1.00"
