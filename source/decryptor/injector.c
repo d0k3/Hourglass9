@@ -4,6 +4,7 @@
 #include "decryptor/aes.h"
 #include "decryptor/sha.h"
 #include "decryptor/keys.h"
+#include "decryptor/hashfile.h"
 #include "decryptor/nand.h"
 #include "decryptor/injector.h"
 
@@ -74,40 +75,6 @@ u32 CryptSdToSd(const char* filename, u32 offset, u32 size, CryptBufferInfo* inf
     FileClose();
 
     return result;
-}
-
-u32 GetHashFromFile(const char* filename, u32 offset, u32 size, u8* hash)
-{
-    // uses the standard buffer, so be careful
-    u8* buffer = BUFFER_ADDRESS;
-    
-    if (!FileOpen(filename))
-        return 1;
-    sha_init(SHA256_MODE);
-    for (u32 i = 0; i < size; i += BUFFER_MAX_SIZE) {
-        u32 read_bytes = min(BUFFER_MAX_SIZE, (size - i));
-        if (size >= 0x100000) ShowProgress(i, size);
-        if(!FileRead(buffer, read_bytes, offset + i)) {
-            FileClose();
-            return 1;
-        }
-        sha_update(buffer, read_bytes);
-    }
-    sha_get(hash);
-    ShowProgress(0, 0);
-    FileClose();
-    
-    return 0;
-}
-
-u32 CheckHashFromFile(const char* filename, u32 offset, u32 size, const u8* hash)
-{
-    u8 digest[32];
-    
-    if (GetHashFromFile(filename, offset, size, digest) != 0)
-        return 1;
-    
-    return (memcmp(hash, digest, 32) == 0) ? 0 : 1; 
 }
 
 u32 CryptNcch(const char* filename, u32 offset, u32 size, u64 seedId, u8* encrypt_flags)
