@@ -394,5 +394,5 @@ uint64_t TotalStorageSpace()
 
 uint32_t NumHiddenSectors()
 {
-    return (uint32_t) fs.volbase - 1;
+    return (fs.volbase > 0) ? (uint32_t) fs.volbase - 1 : 0;
 }

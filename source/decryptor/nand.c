@@ -81,6 +81,8 @@ u32 CheckEmuNand(void)
 
     // check the MBR for presence of a hidden partition
     u32 hidden_sectors = NumHiddenSectors();
+    if (hidden_sectors > 4 * multi_sectors)
+        hidden_sectors = 4 * multi_sectors;
     
     for (u32 offset_sector = 0; offset_sector + nand_size_sectors_min <= hidden_sectors; offset_sector += multi_sectors) {
         // check for RedNAND type EmuNAND
