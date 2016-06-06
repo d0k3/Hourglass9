@@ -39,7 +39,7 @@
 #define BUFFER_MAX_SIZE ((u32) (1 * 1024 * 1024))
     
 // work files / directories
-#define VERSION_NAME "Hourglass9 v1.00"
+#define VERSION_NAME "Hourglass9 v1.10"
 #define WORK_DIR "/Hourglass9"
 #define LOG_FILE "Hourglass9.log"
 
