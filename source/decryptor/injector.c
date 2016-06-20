@@ -145,10 +145,7 @@ u32 CryptNcch(const char* filename, u32 offset, u32 size, u64 seedId, u8* encryp
         // from https://github.com/profi200/Project_CTR/blob/master/makerom/pki/dev.h
         u8 zeroKey[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
         u8 sysKey[16]  = {0x52, 0x7C, 0xE6, 0x30, 0xA9, 0xCA, 0x30, 0x5F, 0x36, 0x96, 0xF3, 0xCD, 0xE9, 0x54, 0x19, 0x4B};
-        if (uses7xCrypto || usesSeedCrypto) {
-            Debug("Crypto combination is not allowed!");
-            return 1;
-        }
+        uses7xCrypto = usesSeedCrypto = usesSec3Crypto = usesSec4Crypto = false;
         info1.setKeyY = info0.setKeyY = 0;
         info1.keyslot = info0.keyslot = 0x11;
         setup_aeskey(0x11, (ncch->programId & ((u64) 0x10 << 32)) ? sysKey : zeroKey);
@@ -526,7 +523,7 @@ u32 DumpHealthAndSafety(u32 param)
     if (CryptNcch(filename, 0, 0, 0, NULL) != 0)
         return 1;
         
-     return 0;
+    return 0;
 }
 
 u32 InjectHealthAndSafety(u32 param)
@@ -565,25 +562,21 @@ u32 InjectHealthAndSafety(u32 param)
     memset(buffer, 0, size_app[0]);
     if (size_hs > size_app[0]) {
         Debug("H&S inject app is too big!");
+        FileClose();
         return 1;
     }
-    if (!DebugFileRead(buffer, size_hs, 0)) {
+    if (FileCopyTo("hs.enc", buffer, size_hs) != size_hs) {
+        Debug("Error copying to hs.enc");
         FileClose();
         return 1;
     }
     FileClose();
-    if (!DebugFileCreate("hs.enc", true))
-        return 1;
-    if (!DebugFileWrite(buffer, size_app[0], 0)) {
-        FileClose();
-        return 1;
-    }
-    FileClose();
+    
     if (CryptNcch("hs.enc", 0, 0, 0, ncch->flags) != 0)
         return 1;
     
     Debug("Injecting H&S app...");
-    if (EncryptFileToNand("hs.enc", offset_app[0], size_app[0], ctrnand_info) != 0)
+    if (EncryptFileToNand("hs.enc", offset_app[0], size_hs, ctrnand_info) != 0)
         return 1;
     
     Debug("Fixing TMD...");

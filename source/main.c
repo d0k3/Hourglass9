@@ -30,7 +30,7 @@ MenuInfo menu[] =
         "SysNAND Backup/Restore Options", 4, // ID 0
         {
             { "SysNAND Backup",               &DumpNand,              NB_MINSIZE },
-            { "SysNAND Restore",              &RestoreNand,           N_NANDWRITE | NR_KEEPA9LH },
+            { "SysNAND Restore (keep a9lh)",  &RestoreNand,           N_NANDWRITE | NR_KEEPA9LH },
             { "Health&Safety Dump",           &DumpHealthAndSafety,   0 },
             { "Health&Safety Inject",         &InjectHealthAndSafety, N_NANDWRITE }
         }

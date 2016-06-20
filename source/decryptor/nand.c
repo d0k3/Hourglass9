@@ -289,6 +289,14 @@ static u32 CheckNandDumpIntegrity(const char* path, bool check_firm) {
     u8 header[0x200];
     u32 nand_hdr_type = NAND_HDR_UNK;
     
+    Debug("Verifying dump via .SHA...");
+    u32 hash_res = HashVerifyFile(path);
+    if (hash_res == HASH_FAILED) {
+        Debug("Failed, file is corrupt!");
+        return 1;
+    }
+    Debug((hash_res == HASH_VERIFIED) ? "Verification passed" : ".SHA not found, skipped");
+    
     if (!DebugFileOpen(path))
         return 1;
     
@@ -381,14 +389,6 @@ static u32 CheckNandDumpIntegrity(const char* path, bool check_firm) {
     }
     
     FileClose();
-    
-    Debug("Verifying dump via .SHA...");
-    u32 hash_res = HashVerifyFile(path);
-    if (hash_res == HASH_FAILED) {
-        Debug("Failed, file is corrupt!");
-        return 1;
-    }
-    Debug((hash_res == HASH_VERIFIED) ? "Verification passed" : ".SHA not found, skipped");
     
     
     return 0;
