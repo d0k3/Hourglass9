@@ -220,14 +220,11 @@ bool DebugDirOpen(const char* path)
 bool DirRead(char* fname, int fsize)
 {
     FILINFO fno;
-    fno.lfname = fname;
-    fno.lfsize = fsize;
     bool ret = false;
     while (f_readdir(&dir, &fno) == FR_OK) {
         if (fno.fname[0] == 0) break;
         if ((fno.fname[0] != '.') && !(fno.fattrib & AM_DIR)) {
-            if (fname[0] == 0)
-                strcpy(fname, fno.fname);
+            strncpy(fname, fno.fname, fsize - 1);
             ret = true;
             break;
         }
@@ -250,14 +247,11 @@ bool GetFileListWorker(char** list, int* lsize, char* fpath, int fsize, bool rec
     if (f_opendir(&pdir, fpath) != FR_OK)
         return false;
     (fname++)[0] = '/';
-    fno.lfname = fname;
-    fno.lfsize = fsize - (fname - fpath);
     
     while (f_readdir(&pdir, &fno) == FR_OK) {
         if ((strncmp(fno.fname, ".", 2) == 0) || (strncmp(fno.fname, "..", 3) == 0))
             continue; // filter out virtual entries
-        if (fname[0] == 0)
-            strncpy(fname, fno.fname, (fsize - 1) - (fname - fpath));
+        strncpy(fname, fno.fname, (fsize - 1) - (fname - fpath));
         if (fno.fname[0] == 0) {
             ret = true;
             break;
