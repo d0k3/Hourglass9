@@ -10,10 +10,8 @@ static DIR dir;
 bool InitFS()
 {
     bool ret = (f_mount(&fs, "0:", 1) == FR_OK);
-    #ifdef WORK_DIR
     if (ret)
-        f_chdir(WORK_DIR);
-    #endif
+        f_chdir(GetWorkDir());
 
     return ret;
 }
@@ -22,6 +20,26 @@ void DeinitFS()
 {
     LogWrite(NULL);
     f_mount(NULL, "0:", 1);
+}
+
+const char* GetWorkDir()
+{
+    const char* root = "/";
+    const char* work_dirs[] = { WORK_DIRS };
+    u32 n_dirs = sizeof(work_dirs) / sizeof(char*);
+    static char* work_dir = NULL;
+    
+    if (!work_dir) {
+        u32 i;
+        for (i = 0; i < n_dirs; i++) {
+            FILINFO fno;
+            if ((f_stat(work_dirs[i], &fno) == FR_OK) && (fno.fattrib & AM_DIR))
+                break;
+        }
+        work_dir = (char*) ((i >= n_dirs) ? root : work_dirs[i]);
+    }
+    
+    return work_dir;
 }
 
 bool DebugCheckFreeSpace(size_t required)
@@ -42,12 +60,10 @@ bool FileOpen(const char* path)
         path++;
     bool ret = (f_open(&file, path, flags) == FR_OK) ||
         (f_open(&file, path, flags_ro) == FR_OK);
-    #ifdef WORK_DIR
-    f_chdir("/"); // temporarily change the current directory
+    f_chdir("/"); // allow root as alternative to work dir
     if (!ret) ret = (f_open(&file, path, flags) == FR_OK) ||
         (f_open(&file, path, flags_ro) == FR_OK);
-    f_chdir(WORK_DIR);
-    #endif
+    f_chdir(GetWorkDir());
     f_lseek(&file, 0);
     f_sync(&file);
     return ret;
@@ -66,10 +82,8 @@ bool DebugFileOpen(const char* path)
 
 bool FileCreate(const char* path, bool truncate)
 {
-    #ifdef WORK_DIR
     if (!truncate && FileOpen(path))
         return true;
-    #endif
     unsigned flags = FA_READ | FA_WRITE;
     flags |= truncate ? FA_CREATE_ALWAYS : FA_OPEN_ALWAYS;
     if (*path == '/')
@@ -183,24 +197,6 @@ void FileClose()
     f_close(&file);
 }
 
-bool DirMake(const char* path)
-{
-    FRESULT res = f_mkdir(path);
-    bool ret = (res == FR_OK) || (res == FR_EXIST);
-    return ret;
-}
-
-bool DebugDirMake(const char* path)
-{
-    Debug("Creating dir %s ...", path);
-    if (!DirMake(path)) {
-        Debug("Could not create %s!", path);
-        return false;
-    }
-    
-    return true;
-}
-
 bool DirOpen(const char* path)
 {
     return (f_opendir(&dir, path) == FR_OK);
@@ -284,13 +280,11 @@ size_t FileGetData(const char* path, void* buf, size_t size, size_t foffset)
     if (*path == '/')
         path++;
     bool exists = (f_open(&tmp_file, path, flags) == FR_OK);
-    #ifdef WORK_DIR
-    if (!exists) {
+    if (!exists) { // this allows root as alternative to work dir
         f_chdir("/"); // temporarily change the current directory
         exists = (f_open(&tmp_file, path, flags) == FR_OK);
-        f_chdir(WORK_DIR);
+        f_chdir(GetWorkDir());
     }
-    #endif
     if (exists) {
         UINT bytes_read = 0;
         bool res = false;

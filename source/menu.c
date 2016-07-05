@@ -103,10 +103,7 @@ void DrawMenu(MenuInfo* currMenu, u32 index, bool fullDraw, bool subMenu)
             (emunand_state == EMUNAND_NOT_READY) ? "SD not ready" :
             (emunand_state == EMUNAND_GATEWAY) ? "GW EmuNAND" : 
             (emunand_state == EMUNAND_REDNAND) ? "RedNAND" : "SD is ready" );
-        if (DirOpen(WORK_DIR)) {
-            DrawStringF(menublock_x1, SCREEN_HEIGHT - 30, top_screen, "Work directory: %s", WORK_DIR);
-            DirClose();
-        }
+        DrawStringF(menublock_x1, SCREEN_HEIGHT - 30, top_screen, "Work directory: %s", GetWorkDir());
     }
     
     if (!top_screen)

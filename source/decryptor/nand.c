@@ -489,7 +489,7 @@ u32 InputFileNameSelector(char* filename, const char* basename, char* extension,
     // pass #2 -> root dir
     for (u32 i = 0; i < 2; i++) {
         // get the file list - try work directory first
-        if (!GetFileList((i) ? "/" : WORK_DIR, fnlist, 0x80000, false, true, false))
+        if (!GetFileList((i) ? "/" : GetWorkDir(), fnlist, 0x80000, false, true, false))
             continue;
         
         // parse the file names list for usable entries

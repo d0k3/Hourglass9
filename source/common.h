@@ -38,9 +38,8 @@
 #define BUFFER_ADDRESS  ((u8*) 0x21000000)
 #define BUFFER_MAX_SIZE ((u32) (1 * 1024 * 1024))
     
-// work files / directories
+// info / log file name
 #define VERSION_NAME "Hourglass9 v1.10"
-#define WORK_DIR "/Hourglass9"
 #define LOG_FILE "Hourglass9.log"
 
 static inline u32 strchrcount(const char* str, char symbol) {
