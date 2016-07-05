@@ -15,6 +15,7 @@
 #endif
 
 static char debugstr[DBG_N_CHARS_X * DBG_N_CHARS_Y] = { 0 };
+static u32 debugcol[DBG_N_CHARS_Y] = { DBG_COLOR_FONT };
 
 void ClearScreen(u8* screen, int width, int color)
 {
@@ -130,6 +131,8 @@ void Screenshot(const char* path)
 void DebugClear()
 {
     memset(debugstr, 0x00, DBG_N_CHARS_X * DBG_N_CHARS_Y);
+    for (u32 y = 0; y < DBG_N_CHARS_Y; y++)
+        debugcol[y] = DBG_COLOR_FONT;
     ClearScreen(TOP_SCREEN0, SCREEN_WIDTH_TOP, DBG_COLOR_BG);
     ClearScreen(TOP_SCREEN1, SCREEN_WIDTH_TOP, DBG_COLOR_BG);
     #if defined USE_THEME && defined GFX_DEBUG_BG
@@ -144,19 +147,21 @@ void DebugSet(const char **strs)
     if (strs != NULL) for (int y = 0; y < DBG_N_CHARS_Y; y++) {
         int pos_dbgstr = DBG_N_CHARS_X * (DBG_N_CHARS_Y - 1 - y);
         snprintf(debugstr + pos_dbgstr, DBG_N_CHARS_X, "%-*.*s", DBG_N_CHARS_X - 1, DBG_N_CHARS_X - 1, strs[y]);
+        debugcol[y] = DBG_COLOR_FONT;
     }
     
     int pos_y = DBG_START_Y;
-    for (char* str = debugstr + (DBG_N_CHARS_X * (DBG_N_CHARS_Y - 1)); str >= debugstr; str -= DBG_N_CHARS_X) {
-        if (str[0] != '\0') {
-            DrawString(TOP_SCREEN0, str, DBG_START_X, pos_y, DBG_COLOR_FONT, DBG_COLOR_BG);
-            DrawString(TOP_SCREEN1, str, DBG_START_X, pos_y, DBG_COLOR_FONT, DBG_COLOR_BG);
+    u32* col = debugcol + (DBG_N_CHARS_Y - 1);
+    for (char* str = debugstr + (DBG_N_CHARS_X * (DBG_N_CHARS_Y - 1)); str >= debugstr; str -= DBG_N_CHARS_X, col--) {
+        if (*str != '\0') {
+            DrawString(TOP_SCREEN0, str, DBG_START_X, pos_y, *col, DBG_COLOR_BG);
+            DrawString(TOP_SCREEN1, str, DBG_START_X, pos_y, *col, DBG_COLOR_BG);
             pos_y += DBG_STEP_Y;
         }
     }
 }
 
-void Debug(const char *format, ...)
+void DebugColor(u32 color, const char *format, ...)
 {
     static bool adv_output = true;
     char tempstr[128] = { 0 }; // 128 instead of DBG_N_CHARS_X for log file 
@@ -168,10 +173,12 @@ void Debug(const char *format, ...)
     
     if (adv_output) {
         memmove(debugstr + DBG_N_CHARS_X, debugstr, DBG_N_CHARS_X * (DBG_N_CHARS_Y - 1));
+        memmove(debugcol + 1, debugcol, (DBG_N_CHARS_Y - 1) * sizeof(u32));
     } else {
         adv_output = true;
     }
     
+    *debugcol = color;
     if (*tempstr != '\r') { // not a good way of doing this - improve this later
         snprintf(debugstr, DBG_N_CHARS_X, "%-*.*s", DBG_N_CHARS_X - 1, DBG_N_CHARS_X - 1, tempstr);
         LogWrite(tempstr);
@@ -181,6 +188,17 @@ void Debug(const char *format, ...)
     }
     
     DebugSet(NULL);
+}
+
+void Debug(const char *format, ...)
+{
+    char tempstr[128] = { 0 }; // 128 instead of DBG_N_CHARS_X for log file 
+    va_list va;
+    
+    va_start(va, format);
+    vsnprintf(tempstr, 128, format, va);
+    DebugColor(DBG_COLOR_FONT, tempstr);
+    va_end(va);
 }
 
 #if !defined(USE_THEME) || !defined(ALT_PROGRESS)

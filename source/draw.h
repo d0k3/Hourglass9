@@ -15,6 +15,13 @@
 
 #define COLOR_BLACK         RGB(0x00, 0x00, 0x00)
 #define COLOR_WHITE         RGB(0xFF, 0xFF, 0xFF)
+#define COLOR_RED           RGB(0xFF, 0x00, 0x00)
+#define COLOR_GREEN         RGB(0x00, 0xFF, 0x00)
+#define COLOR_BLUE          RGB(0x00, 0x00, 0xFF)
+#define COLOR_CYAN          RGB(0x00, 0xFF, 0xFF)
+#define COLOR_MAGENTA       RGB(0xFF, 0x00, 0xFF)
+#define COLOR_YELLOW        RGB(0xFF, 0xFF, 0x00)
+#define COLOR_GREY          RGB(0x77, 0x77, 0x77)
 #define COLOR_TRANSPARENT   RGB(0xFF, 0x00, 0xEF) // otherwise known as 'super fuchsia'
 
 #ifndef USE_THEME
@@ -49,6 +56,7 @@ void DrawStringF(int x, int y, bool use_top, const char *format, ...);
 void Screenshot(const char* path);
 void DebugClear();
 void DebugSet(const char **strs);
+void DebugColor(u32 color, const char *format, ...);
 void Debug(const char *format, ...);
 
 void ShowProgress(u64 current, u64 total);

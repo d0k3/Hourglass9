@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common.h"
 #ifdef USE_THEME
+#include "common.h"
 #include "draw.h"
 
 #define GFX_PROGRESS  "progress.bin"
@@ -13,10 +13,6 @@
 #define GFX_DEBUG_BG  "debug_bg.bin"
 #define GFX_LOGO      "logo.bin"
 
-#define COLOR_RED           RGB(0xFF, 0x00, 0x00)
-#define COLOR_GREEN         RGB(0x00, 0xFF, 0x00)
-#define COLOR_BLUE          RGB(0xFF, 0x00, 0xFF)
-#define COLOR_GREY          RGB(0x77, 0x77, 0x77)
 #define COLOR_PURPLE        RGB(0x66, 0x00, 0xFF)
 
 #define LOGO_TOP        true

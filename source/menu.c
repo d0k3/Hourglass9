@@ -170,8 +170,9 @@ u32 ProcessEntry(MenuEntry* entry)
     LoadThemeGfx(GFX_PROGRESS, false);
     #endif
     DebugClear();
+    Debug("Selected: [%s]", entry->name);
     res = (SetNand(emunand, nand_force) == 0) ? (*(entry->function))(entry->param) : 1;
-    Debug("%s: %s!", entry->name, (res == 0) ? "succeeded" : "failed");
+    DebugColor((res == 0) ? COLOR_GREEN : COLOR_RED, "%s: %s!", entry->name, (res == 0) ? "succeeded" : "failed");
     Debug("");
     Debug("Press B to return, START to reboot.");
     #ifdef USE_THEME
