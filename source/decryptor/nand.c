@@ -585,7 +585,7 @@ u32 GetNandCtr(u8* ctr, u32 offset)
         u8 NandCid[16];
         u8 shasum[32];
         
-        sdmmc_get_cid( 1, (uint32_t*) NandCid);
+        sdmmc_get_cid(1, (uint32_t*) NandCid);
         sha_quick(shasum, NandCid, 16, SHA256_MODE);
         memcpy(CtrNandCtr, shasum, 16);
         
