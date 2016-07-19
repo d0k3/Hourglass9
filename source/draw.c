@@ -41,13 +41,13 @@ void ClearScreenFull(bool clear_top, bool clear_bottom)
 
 void DrawCharacter(u8* screen, int character, int x, int y, int color, int bgcolor)
 {
-    for (int yy = 0; yy < 8; yy++) {
+    for (int yy = 0; yy < FONT_HEIGHT; yy++) {
         int xDisplacement = (x * BYTES_PER_PIXEL * SCREEN_HEIGHT);
         int yDisplacement = ((SCREEN_HEIGHT - (y + yy) - 1) * BYTES_PER_PIXEL);
         u8* screenPos = screen + xDisplacement + yDisplacement;
 
-        u8 charPos = font[character * 8 + yy];
-        for (int xx = 7; xx >= 0; xx--) {
+        u8 charPos = font[character * FONT_HEIGHT + yy];
+        for (int xx = 7; xx >= (8 - FONT_WIDTH); xx--) {
             if ((charPos >> xx) & 1) {
                 *(screenPos + 0) = color >> 16;  // B
                 *(screenPos + 1) = color >> 8;   // G
@@ -65,7 +65,7 @@ void DrawCharacter(u8* screen, int character, int x, int y, int color, int bgcol
 void DrawString(u8* screen, const char *str, int x, int y, int color, int bgcolor)
 {
     for (size_t i = 0; i < strlen(str); i++)
-        DrawCharacter(screen, str[i], x + i * 8, y, color, bgcolor);
+        DrawCharacter(screen, str[i], x + i * FONT_WIDTH, y, color, bgcolor);
 }
 
 void DrawStringF(int x, int y, bool use_top, const char *format, ...)
@@ -90,7 +90,7 @@ void DrawStringF(int x, int y, bool use_top, const char *format, ...)
 
 void Screenshot(const char* path)
 {
-    u8* buffer = (u8*) 0x21000000; // careful, this area is used by other functions in Hourglass9
+    u8* buffer = (u8*) 0x21000000; // careful, this area is used by other functions in Decrypt9
     u8* buffer_t = buffer + (400 * 240 * 3);
     u8 bmp_header[54] = {
         0x42, 0x4D, 0x36, 0xCA, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00, 0x28, 0x00,
