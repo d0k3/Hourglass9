@@ -130,14 +130,15 @@ u32 ProcessEntry(MenuEntry* entry)
         u32 unlockSequenceSys[] = { BUTTON_LEFT, BUTTON_UP, BUTTON_RIGHT, BUTTON_UP, BUTTON_A };
         u32 unlockLvlMax = ((emunand) ? sizeof(unlockSequenceEmu) : sizeof(unlockSequenceSys)) / sizeof(u32);
         u32* unlockSequence = (emunand) ? unlockSequenceEmu : unlockSequenceSys;
+		u32 warnColor = (emunand) ? COLOR_YELLOW : COLOR_RED;
         u32 unlockLvl = 0;
         #ifdef USE_THEME
         LoadThemeGfx((emunand) ? GFX_DANGER_E : GFX_DANGER_S, false);
         #endif
         DebugClear();
         Debug("You selected \"%s\".", entry->name);
-        Debug("This feature writes to the %s.", (emunand) ? "EmuNAND" : "SysNAND");
-        Debug("Data will be overwriten, keep backups!");
+        DebugColor(warnColor, "This feature writes to the %s.", (emunand) ? "EmuNAND" : "SysNAND");
+        DebugColor(warnColor, "Data will be overwriten, keep backups!");
         Debug("");
         Debug("If you wish to proceed, enter:");
         Debug((emunand) ? "<Left>, <Right>, <Down>, <Up>, <A>" : "<Left>, <Up>, <Right>, <Up>, <A>");
