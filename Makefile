@@ -20,7 +20,7 @@ export TARGET	:=	Hourglass9
 BUILD		:=	build
 SOURCES		:=	source source/fatfs source/decryptor
 DATA		:=	data
-INCLUDES	:=	source source/fatfs
+INCLUDES	:=	source source/font source/fatfs
 
 #---------------------------------------------------------------------------------
 # THEME: if set to anything, name of the themes file folder inside resources
