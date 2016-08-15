@@ -140,6 +140,7 @@ int main()
     }
     DeinitFS();
     
+    ClearScreenFull(true, true);
     (menu_exit == MENU_EXIT_REBOOT) ? Reboot() : PowerOff();
     return 0;
 }
