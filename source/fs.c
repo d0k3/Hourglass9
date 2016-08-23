@@ -100,11 +100,11 @@ bool DebugFileCreate(const char* path, bool truncate) {
     return true;
 }
 
-size_t FileCopyTo(const char* dest, void* buf, size_t bufsize)
+size_t FileInjectTo(const char* dest, u32 offset_in, u32 offset_out, u32 size, bool overwrite, void* buf, size_t bufsize)
 {
-    unsigned flags = FA_READ | FA_WRITE | FA_CREATE_ALWAYS;
+    unsigned flags = FA_WRITE | (overwrite ? FA_CREATE_ALWAYS : FA_OPEN_ALWAYS);
     size_t fsize = f_size(&file);
-    size_t result = fsize;
+    size_t result = size;
     FIL dfile;
     // make sure the containing folder exists
     char tmp[256] = { 0 };
@@ -117,17 +117,22 @@ size_t FileCopyTo(const char* dest, void* buf, size_t bufsize)
             *p = s;
         }
     }
-    // do the actual copying
+    // fix size var if zero
+    if (size == 0)
+        result = size = fsize - offset_in;
+    // do the actual injecting
     if (f_open(&dfile, dest, flags) != FR_OK)
         return 0;
-    f_lseek(&dfile, 0);
+    f_lseek(&dfile, offset_out);
     f_sync(&dfile);
-    f_lseek(&file, 0);
+    f_lseek(&file, offset_in);
     f_sync(&file);
-    for (size_t pos = 0; pos < fsize; pos += bufsize) {
+    for (size_t pos = 0; pos < size; pos += bufsize) {
         UINT bytes_read = 0;
         UINT bytes_written = 0;
-        ShowProgress(pos, fsize);
+        ShowProgress(pos, size);
+        if (pos + bufsize > size)
+            bufsize = size - pos;
         if ((f_read(&file, buf, bufsize, &bytes_read) != FR_OK) ||
             (f_write(&dfile, buf, bytes_read, &bytes_written) != FR_OK) ||
             (bytes_read != bytes_written)) {
@@ -138,6 +143,11 @@ size_t FileCopyTo(const char* dest, void* buf, size_t bufsize)
     ShowProgress(0, 0);
     f_close(&dfile);
     return result;
+}
+
+size_t FileCopyTo(const char* dest, void* buf, size_t bufsize)
+{
+    return FileInjectTo(dest, 0, 0, 0, true, buf, bufsize);
 }
 
 size_t FileRead(void* buf, size_t size, size_t foffset)

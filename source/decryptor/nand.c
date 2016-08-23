@@ -608,6 +608,11 @@ u32 DecryptNandToMem(u8* buffer, u32 offset, u32 size, PartitionInfo* partition)
     CryptBufferInfo info = {.keyslot = partition->keyslot, .setKeyY = 0, .size = size, .buffer = buffer, .mode = partition->mode};
     if(GetNandCtr(info.ctr, offset) != 0)
         return 1;
+    
+    if (offset % NAND_SECTOR_SIZE) {
+        Debug("Bad NAND offset alignment");
+        return 1;
+    }
 
     u32 n_sectors = (size + NAND_SECTOR_SIZE - 1) / NAND_SECTOR_SIZE;
     u32 start_sector = offset / NAND_SECTOR_SIZE;
@@ -706,6 +711,11 @@ u32 EncryptMemToNand(u8* buffer, u32 offset, u32 size, PartitionInfo* partition)
     CryptBufferInfo info = {.keyslot = partition->keyslot, .setKeyY = 0, .size = size, .buffer = buffer, .mode = partition->mode};
     if(GetNandCtr(info.ctr, offset) != 0)
         return 1;
+    
+    if (offset % NAND_SECTOR_SIZE) {
+        Debug("Bad NAND offset alignment");
+        return 1;
+    }
 
     u32 n_sectors = (size + NAND_SECTOR_SIZE - 1) / NAND_SECTOR_SIZE;
     u32 start_sector = offset / NAND_SECTOR_SIZE;

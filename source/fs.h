@@ -21,6 +21,9 @@ bool DebugFileOpen(const char* path);
 bool FileCreate(const char* path, bool truncate);
 bool DebugFileCreate(const char* path, bool truncate);
 
+/** Injects currently opened file to destination from offset_in to offset_out (buffer must be provided) */
+size_t FileInjectTo(const char* dest, u32 offset_in, u32 offset_out, u32 size, bool overwrite, void* buf, size_t bufsize);
+
 /** Copies currently opened file to destination (must provide buffer) */
 size_t FileCopyTo(const char* dest, void* buf, size_t bufsize);
 
