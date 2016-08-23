@@ -8,6 +8,7 @@ Hourglass9 is nothing new - all the functionality found within it is in Decrypt9
 * __Restore your SysNAND / EmuNAND__ - to return to an earlier state. _This will never overwrite your existing arm9loaderhax installation_.
 * __Validate existing NAND dumps__ - to make sure they are ready to restore.
 * __Dump & Inject the Health and Safety app__ - to setup a CIA installer in your system. More info [here](https://gbatemp.net/threads/release-inject-any-app-into-health-safety-o3ds-n3ds-cfw-only.402236/).
+* Dump retail game cartridges to .3DS / .CIA / .NDS.
 * __A nice dragon logo on the bottom screen__ - you wouldn't have expected this, right?
 
 While the stuff written above should be enough for the average user, advanced users will still need to use Decrypt9 for more specific modifications of their console OS. Also keep in mind that __you alone or responsible for keeping your backups safe and not losing them__.

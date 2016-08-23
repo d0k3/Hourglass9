@@ -7,7 +7,8 @@
 #include "i2c.h"
 #include "decryptor/keys.h"
 #include "decryptor/nand.h"
-#include "decryptor/injector.h"
+#include "decryptor/nandfat.h"
+#include "decryptor/game.h"
 #include "bottomlogo_bgr.h"
 
 #define SUBMENU_START 1
@@ -16,13 +17,14 @@ MenuInfo menu[] =
 {
     {
         #ifndef VERSION_NAME
-        "Hourglass9 Main Menu", 3,
+        "Hourglass9 Main Menu", 4,
         #else
-        VERSION_NAME, 3,
+        VERSION_NAME, 4,
         #endif
         {
             { "SysNAND Backup/Restore...",    NULL,                   SUBMENU_START + 0 },
             { "EmuNAND Backup/Restore...",    NULL,                   SUBMENU_START + 1 },
+            { "Gamecart Dumper...",           NULL,                   SUBMENU_START + 2 },
             { "Validate NAND Dump",           &ValidateNandDump,      0 }
         }
     },
@@ -42,6 +44,17 @@ MenuInfo menu[] =
             { "EmuNAND Restore",              &RestoreNand,           N_NANDWRITE | N_EMUNAND | N_FORCEEMU },
             { "Health&Safety Dump",           &DumpHealthAndSafety,   N_EMUNAND },
             { "Health&Safety Inject",         &InjectHealthAndSafety, N_NANDWRITE | N_EMUNAND }
+        }
+    },
+    {
+        "Gamecart Dumper Options", 6, // ID 2
+        {
+            { "Dump Cart (full)",             &DumpGameCart,          0 },
+            { "Dump Cart (trim)",             &DumpGameCart,          CD_TRIM },
+            { "Dump & Decrypt Cart (full)",   &DumpGameCart,          CD_DECRYPT },
+            { "Dump & Decrypt Cart (trim)",   &DumpGameCart,          CD_DECRYPT | CD_TRIM },
+            { "Dump Cart to CIA",             &DumpGameCart,          CD_DECRYPT | CD_MAKECIA },
+            { "Dump Private Header",          &DumpPrivateHeader,     0 }
         }
     },
     {

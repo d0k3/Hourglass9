@@ -18,7 +18,7 @@ include $(DEVKITARM)/ds_rules
 #---------------------------------------------------------------------------------
 export TARGET	:=	Hourglass9
 BUILD		:=	build
-SOURCES		:=	source source/fatfs source/decryptor
+SOURCES		:=	source source/fatfs source/decryptor source/gamecart
 DATA		:=	data
 INCLUDES	:=	source source/font source/fatfs
 
