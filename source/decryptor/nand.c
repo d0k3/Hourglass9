@@ -565,8 +565,8 @@ PartitionInfo* GetPartitionInfo(u32 partition_id)
 {
     u32 partition_num = 0;
     
-    if (partition_id == P_CTRNAND) {
-        partition_num = (GetUnitPlatform() == PLATFORM_3DS) ? 5 : (CheckNandHeaderType(NULL) == NAND_HDR_N3DS) ? 6 : 7;
+    if (partition_id & P_CTRNAND) {
+        partition_num = (CheckNandHeaderType(NULL) == NAND_HDR_O3DS) ? 5 : 6;
     } else {
         for(; !(partition_id & (1<<partition_num)) && (partition_num < 32); partition_num++);
     }
