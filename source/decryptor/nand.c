@@ -819,9 +819,9 @@ u32 RestoreNand(u32 param)
     } else { // ARM9loaderhax preserving restore
         for (u32 section = 0; section < 3; section++) {
             u32 start_sector, end_sector;
-            if (section == 0) { // NAND header
-                start_sector = 0;
-                end_sector = 1;
+            if (section == 0) { // NAND header & sectors until 0x96
+                start_sector = 0x00;
+                end_sector = 0x96;
             } else if (section == 1) { // TWLN, TWLP & AGBSAVE
                 start_sector = partitions[0].offset / NAND_SECTOR_SIZE;
                 end_sector = ((partitions[2].offset + partitions[2].size) - partitions[0].offset) / NAND_SECTOR_SIZE;
