@@ -42,7 +42,7 @@
 #define BUFFER_MAX_SIZE ((u32) (1 * 1024 * 1024))
     
 // info / log file name
-#define VERSION_NAME "Hourglass9 v1.20"
+#define VERSION_NAME "Hourglass9 v1.21"
 #define LOG_FILE "Hourglass9.log"
 
 static inline u32 strchrcount(const char* str, char symbol) {
