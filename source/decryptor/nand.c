@@ -666,12 +666,12 @@ u32 DumpNand(u32 param)
     
     Debug("Dumping %sNAND. Size (MB): %u", (param & N_EMUNAND) ? "Emu" : "Sys", nand_size / (1024 * 1024));
     
-    if (!DebugCheckFreeSpace(nand_size))
-        return 1;
-    
-    if (OutputFileNameSelector(filename, "NAND.bin", NULL) != 0)
+    if (OutputFileNameSelector(filename, (param & NB_MINSIZE) ? "NANDmin.bin" : "NAND.bin", NULL) != 0)
         return 1;
     if (!DebugFileCreate(filename, true))
+        return 1;
+    
+    if (!DebugCheckFreeSpace(nand_size))
         return 1;
 
     sha_init(SHA256_MODE);
