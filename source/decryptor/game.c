@@ -879,6 +879,11 @@ u32 DumpCtrGameCart(u32 param)
         Debug("Could not create output file on SD");
         return 1;
     }
+    if (param & CD_DECRYPT) { // fix the flags inside the NCCH copy for decrypted
+        ncch->flags[3] = 0x00;
+        ncch->flags[7] &= (0x01|0x20)^0xFF;
+        ncch->flags[7] |= 0x04;
+    }
     if (param & CD_MAKECIA) { // CIA stub, including header, cert, ticket, TMD
         if (!DebugFileWrite((void*) cia_stub, cia.offset_content, 0)) {
             FileClose();
