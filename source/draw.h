@@ -12,6 +12,8 @@
 #define SCREEN_WIDTH_BOT 320
 #ifdef FONT_6X10 // special font width
 #define FONT_WIDTH_EXT 6
+#elif defined FONT_GB // special font width
+#define FONT_WIDTH_EXT 7
 #else
 #define FONT_WIDTH_EXT 8
 #endif
