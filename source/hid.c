@@ -1,15 +1,21 @@
 #include "hid.h"
+#include "i2c.h"
 
 u32 InputWait() {
     u32 pad_state_old = HID_STATE;
     while (true) {
         u32 pad_state = HID_STATE;
+        u32 special_key = i2cReadRegister(I2C_DEV_MCU, 0x10);
+        if (special_key == 0x01)
+            return pad_state | BUTTON_POWER;
+        else if (special_key == 0x04)
+            return pad_state | BUTTON_HOME;
         if (pad_state == pad_state_old)
             continue;
         // make sure the key is pressed
         u32 t_pressed = 0;
         for(; (t_pressed < 0x13000) && (pad_state == HID_STATE); t_pressed++);
         if (t_pressed >= 0x13000)
-            return ~pad_state;
+            return pad_state;
     }
 }

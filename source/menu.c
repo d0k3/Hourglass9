@@ -291,6 +291,12 @@ u32 ProcessMenu(MenuInfo* info, u32 n_entries_main)
         if (pad_state & BUTTON_START) {
             result = (pad_state & BUTTON_LEFT) ? MENU_EXIT_POWEROFF : MENU_EXIT_REBOOT;
             break;
+        } else if (pad_state & BUTTON_POWER) {
+            result = MENU_EXIT_POWEROFF;
+            break;
+        } else if (pad_state & BUTTON_HOME) {
+            result = MENU_EXIT_REBOOT;
+            break;
         }
         #ifndef USE_THEME
         DrawMenu(currMenu, index, full_draw, menuLvl > menuLvlMin);
