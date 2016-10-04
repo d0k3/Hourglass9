@@ -7,13 +7,11 @@
 
 bool ImportFrameBuffer(const char* path, u32 use_top) {
     u32 bufsize = BYTES_PER_PIXEL * SCREEN_HEIGHT * ((use_top) ? SCREEN_WIDTH_TOP : SCREEN_WIDTH_BOT);
-    u8* buffer0 = (use_top) ? TOP_SCREEN0 : BOT_SCREEN0;
-    u8* buffer1 = (use_top) ? TOP_SCREEN1 : BOT_SCREEN1;
+    u8* buffer = (use_top) ? TOP_SCREEN : BOT_SCREEN;
     bool result;
     
     if (!FileOpen(path)) return false;
-    result = FileRead(buffer0, bufsize, 0);
-    memcpy(buffer1, buffer0, bufsize);
+    result = FileRead(buffer, bufsize, 0);
     FileClose();
     
     return result;
@@ -61,8 +59,7 @@ void ShowProgress(u64 current, u64 total) {
     }
     progStr[nSymbols] = '\0';
     
-    DrawString(BOT_SCREEN0, progStr, PRG_START_X, PRG_START_Y, PRG_COLOR_FONT, PRG_COLOR_BG);
-    DrawString(BOT_SCREEN1, progStr, PRG_START_X, PRG_START_Y, PRG_COLOR_FONT, PRG_COLOR_BG);
+    DrawString(BOT_SCREEN, progStr, PRG_START_X, PRG_START_Y, PRG_COLOR_FONT, PRG_COLOR_BG);
 }
 #endif
 #endif

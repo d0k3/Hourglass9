@@ -31,6 +31,17 @@
 #define COLOR_GREY          RGB(0x77, 0x77, 0x77)
 #define COLOR_TRANSPARENT   RGB(0xFF, 0x00, 0xEF) // otherwise known as 'super fuchsia'
 
+#define COLOR_GREYBLUE      RGB(0xA0, 0xA0, 0xFF)
+#define COLOR_GREYGREEN     RGB(0xA0, 0xFF, 0xA0)
+#define COLOR_GREYRED       RGB(0xFF, 0xA0, 0xA0)
+#define COLOR_GREYCYAN      RGB(0xA0, 0xFF, 0xFF)
+#define COLOR_TINTEDRED     RGB(0xFF, 0x60, 0x60)
+#define COLOR_LIGHTGREY     RGB(0xA0, 0xA0, 0xA0)
+
+#define COLOR_ASK           COLOR_GREYGREEN
+#define COLOR_SELECT        COLOR_LIGHTGREY
+#define COLOR_ACCENT        COLOR_WHITE
+
 #ifndef USE_THEME
 #define STD_COLOR_BG   COLOR_BLACK
 #define STD_COLOR_FONT COLOR_WHITE
@@ -48,10 +59,8 @@
 #define DBG_N_CHARS_Y ((DBG_END_Y - DBG_START_Y) / DBG_STEP_Y)
 #define DBG_N_CHARS_X (((DBG_END_X - DBG_START_X) / FONT_WIDTH) + 1)
 
-#define TOP_SCREEN0 (u8*)(*(u32*)0x23FFFE00)
-#define TOP_SCREEN1 (u8*)(*(u32*)0x23FFFE00)
-#define BOT_SCREEN0 (u8*)(*(u32*)0x23FFFE08)
-#define BOT_SCREEN1 (u8*)(*(u32*)0x23FFFE08)
+#define TOP_SCREEN (u8*)(*(u32*)0x23FFFE00)
+#define BOT_SCREEN (u8*)(*(u32*)0x23FFFE08)
 
 void ClearScreen(unsigned char *screen, int width, int color);
 void ClearScreenFull(bool clear_top, bool clear_bottom);
@@ -59,6 +68,7 @@ void ClearScreenFull(bool clear_top, bool clear_bottom);
 void DrawCharacter(unsigned char *screen, int character, int x, int y, int color, int bgcolor);
 void DrawString(unsigned char *screen, const char *str, int x, int y, int color, int bgcolor);
 void DrawStringF(int x, int y, bool use_top, const char *format, ...);
+void DrawStringFC(int x, int y, bool use_top, u32 color, const char *format, ...);
 
 void Screenshot(const char* path);
 void DebugClear();

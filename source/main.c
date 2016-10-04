@@ -82,16 +82,14 @@ u32 InitializeH9()
     u32 errorlevel = 0; // 0 -> none, 1 -> autopause, 2 -> critical
     
     ClearScreenFull(true, true);
-    if (bottomlogo_bgr_size == 320 * 240 * 3) {
-        memcpy(BOT_SCREEN0, bottomlogo_bgr, 320 * 240 * 3);
-        memcpy(BOT_SCREEN1, bottomlogo_bgr, 320 * 240 * 3);
-    }
+    if (bottomlogo_bgr_size == 320 * 240 * 3)
+        memcpy(BOT_SCREEN, bottomlogo_bgr, 320 * 240 * 3);
     
     DebugClear();
     #ifndef BUILD_NAME
-    Debug("-- Hourglass9 --");
+    DebugColor(COLOR_ACCENT, "-- Hourglass9 --");
     #else
-    Debug("-- %s --", BUILD_NAME);
+    DebugColor(COLOR_ACCENT, "-- %s --", BUILD_NAME);
     #endif
     
     // a little bit of information about the current menu
@@ -114,8 +112,7 @@ u32 InitializeH9()
     Debug("Checking arm9loaderhax... %s", (*(vu32*) 0x101401C0) ? "failed" : "success");
     if (InitFS()) {
         Debug("Initializing SD card... success");
-        FileGetData("h9logo.bin", BOT_SCREEN0, 320 * 240 * 3, 0);
-        memcpy(BOT_SCREEN1, BOT_SCREEN0, 320 * 240 * 3);
+        FileGetData("h9logo.bin", BOT_SCREEN, 320 * 240 * 3, 0);
         if (SetupTwlKey0x03() != 0) // TWL KeyX / KeyY
             errorlevel = 2;
         if ((GetUnitPlatform() == PLATFORM_N3DS) && (SetupCtrNandKeyY0x05() != 0))

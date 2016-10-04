@@ -114,11 +114,11 @@ u32 SetNand(bool set_emunand, bool force_emunand)
         for (emunand_count = 0; (emunand_state >> (2 * emunand_count)) & 0x3; emunand_count++);
         if (emunand_count > 1) { // multiple EmuNANDs -> use selector
             u32 emunand_no = 0;
-            Debug("Use arrow keys and <A> to choose EmuNAND");
+            DebugColor(COLOR_ASK, "Use arrow keys and <A> to choose EmuNAND");
             while (true) {
                 u32 emunandn_state = (emunand_state >> (2 * emunand_no)) & 0x3;
                 offset_sector = emunand_no * EMUNAND_MULTI_SECTORS;
-                Debug("\rEmuNAND #%u: %s", emunand_no, (emunandn_state == EMUNAND_READY) ? "EmuNAND ready" : (emunandn_state == EMUNAND_GATEWAY) ? "GW EmuNAND" : "RedNAND");
+                DebugColor(COLOR_SELECT, "\rEmuNAND #%u: %s", emunand_no, (emunandn_state == EMUNAND_READY) ? "EmuNAND ready" : (emunandn_state == EMUNAND_GATEWAY) ? "GW EmuNAND" : "RedNAND");
                 // user input routine
                 u32 pad_state = InputWait();
                 if (pad_state & BUTTON_DOWN) {
@@ -126,11 +126,11 @@ u32 SetNand(bool set_emunand, bool force_emunand)
                 } else if (pad_state & BUTTON_UP) {
                     emunand_no = (emunand_no) ?  emunand_no - 1 : emunand_count - 1;
                 } else if (pad_state & BUTTON_A) {
-                    Debug("EmuNAND #%u", emunand_no);
+                    DebugColor(COLOR_ASK, "EmuNAND #%u", emunand_no);
                     emunand_state = emunandn_state;
                     break;
                 } else if (pad_state & BUTTON_B) {
-                    Debug("(cancelled by user)");
+                    DebugColor(COLOR_ASK, "(cancelled by user)");
                     return 2;
                 }
             }
@@ -418,7 +418,7 @@ u32 OutputFileNameSelector(char* filename, const char* basename, char* extension
     char extstr[16] = { 0 };
     if (extension)
         snprintf(extstr, 15, ".%s", extension);
-    Debug("Use arrow keys and <A> to choose a name");
+    DebugColor(COLOR_ASK, "Use arrow keys and <A> to choose a name");
     while (true) {
         char numstr[2] = { 0 };
         // build and output file name (plus "(!)" if existing)
@@ -426,7 +426,7 @@ u32 OutputFileNameSelector(char* filename, const char* basename, char* extension
         snprintf(filename, 63, "%s%s%s", bases[fn_id], numstr, extstr);
         if ((exists = FileOpen(filename)))
             FileClose();
-        Debug("\r%s%s", filename, (exists) ? " (!)" : "");
+        DebugColor(COLOR_SELECT, "\r%s%s", filename, (exists) ? " (!)" : "");
         // user input routine
         u32 pad_state = InputWait();
         if (pad_state & BUTTON_DOWN) { // increment filename id
@@ -438,23 +438,23 @@ u32 OutputFileNameSelector(char* filename, const char* basename, char* extension
         } else if ((pad_state & BUTTON_LEFT) && (fn_num > 0)) { // decrement number
             fn_num--;
         } else if (pad_state & BUTTON_A) {
-            Debug("%s%s", filename, (exists) ? " (!)" : "");
+           DebugColor(COLOR_ASK, "%s%s", filename, (exists) ? " (!)" : "");
             break;
         } else if (pad_state & BUTTON_B) {
-            Debug("(cancelled by user)");
+            DebugColor(COLOR_ASK, "(cancelled by user)");
             return 2;
         }
     }
     
     // overwrite confirmation
     if (exists) {
-        Debug("Press <A> to overwrite existing file");
+        DebugColor(COLOR_ASK, "Press <A> to overwrite existing file");
         while (true) {
             u32 pad_state = InputWait();
             if (pad_state & BUTTON_A) {
                 break;
             } else if (pad_state & BUTTON_B) {
-                Debug("(cancelled by user)");
+                DebugColor(COLOR_ASK, "(cancelled by user)");
                 return 2;
             }
         }
@@ -540,20 +540,20 @@ u32 InputFileNameSelector(char* filename, const char* basename, char* extension,
     }
     
     u32 index = 0;
-    Debug("Use arrow keys and <A> to choose a file");
+    DebugColor(COLOR_ASK, "Use arrow keys and <A> to choose a file");
     while (true) {
         snprintf(filename, 63, "%s", fnptr[index]);
-        Debug("\r%s", filename);
+        DebugColor(COLOR_SELECT, "\r%s", filename);
         u32 pad_state = InputWait();
         if (pad_state & BUTTON_DOWN) { // next filename
             index = (index + 1) % n_names;
         } else if (pad_state & BUTTON_UP) { // previous filename
             index = (index > 0) ? index - 1 : n_names - 1;
         } else if (pad_state & BUTTON_A) {
-            Debug("%s", filename);
+            DebugColor(COLOR_ASK, "%s", filename);
             break;
         } else if (pad_state & BUTTON_B) {
-            Debug("(cancelled by user)");
+            DebugColor(COLOR_ASK, "(cancelled by user)");
             return 2;
         }
     }

@@ -91,7 +91,7 @@ void DrawMenu(MenuInfo* currMenu, u32 index, bool fullDraw, bool subMenu)
     
     if (fullDraw) { // draw full menu
         ClearScreenFull(true, !top_screen);
-        DrawStringF(menublock_x0, menublock_y0 - 20, top_screen, "%s", currMenu->name);
+        DrawStringFC(menublock_x0, menublock_y0 - 20, top_screen, COLOR_ACCENT, "%s", currMenu->name);
         DrawStringF(menublock_x0, menublock_y0 - 10, top_screen, "==============================");
         DrawStringF(menublock_x0, menublock_y1 +  0, top_screen, "==============================");
         DrawStringF(menublock_x0, menublock_y1 + 10, top_screen, (subMenu) ? "A: Choose  B: Return" : "A: Choose");
@@ -111,7 +111,8 @@ void DrawMenu(MenuInfo* currMenu, u32 index, bool fullDraw, bool subMenu)
         
     for (u32 i = 0; i < currMenu->n_entries; i++) { // draw menu entries / selection []
         char* name = currMenu->entries[i].name;
-        DrawStringF(menublock_x0, menublock_y0 + (i*10), top_screen, (i == index) ? "[%s]" : " %s ", name);
+        DrawStringFC(menublock_x0, menublock_y0 + (i*10), top_screen, (i == index) ? COLOR_ASK : COLOR_SELECT, 
+            (i == index) ? "[%s]" : " %s ", name);
     }
 }
 
@@ -120,6 +121,7 @@ u32 ProcessEntry(MenuEntry* entry)
     bool emunand    = entry->param & N_EMUNAND;
     bool nand_force = entry->param & N_FORCEEMU;
     bool warning    = entry->param & N_NANDWRITE;
+    u32 entryColor = COLOR_GREEN;
     
     u32 pad_state;
     u32 res = 0;
@@ -130,15 +132,16 @@ u32 ProcessEntry(MenuEntry* entry)
         u32 unlockSequenceSys[] = { BUTTON_LEFT, BUTTON_UP, BUTTON_RIGHT, BUTTON_UP, BUTTON_A };
         u32 unlockLvlMax = ((emunand) ? sizeof(unlockSequenceEmu) : sizeof(unlockSequenceSys)) / sizeof(u32);
         u32* unlockSequence = (emunand) ? unlockSequenceEmu : unlockSequenceSys;
-		u32 warnColor = (emunand) ? COLOR_YELLOW : COLOR_RED;
+		
         u32 unlockLvl = 0;
+        entryColor = (emunand) ? COLOR_YELLOW : COLOR_RED;
         #ifdef USE_THEME
         LoadThemeGfx((emunand) ? GFX_DANGER_E : GFX_DANGER_S, false);
         #endif
         DebugClear();
         Debug("You selected \"%s\".", entry->name);
-        DebugColor(warnColor, "This feature writes to the %s.", (emunand) ? "EmuNAND" : "SysNAND");
-        DebugColor(warnColor, "Data will be overwriten, keep backups!");
+        DebugColor(entryColor, "This feature writes to the %s.", (emunand) ? "EmuNAND" : "SysNAND");
+        DebugColor(entryColor, "Data will be overwriten, keep backups!");
         Debug("");
         Debug("If you wish to proceed, enter:");
         Debug((emunand) ? "<Left>, <Right>, <Down>, <Up>, <A>" : "<Left>, <Up>, <Right>, <Up>, <A>");
@@ -168,7 +171,7 @@ u32 ProcessEntry(MenuEntry* entry)
     LoadThemeGfx(GFX_PROGRESS, false);
     #endif
     DebugClear();
-    Debug("Selected: [%s]", entry->name);
+    DebugColor(entryColor, "Selected: [%s]", entry->name);
     res = (SetNand(emunand, nand_force) == 0) ? (*(entry->function))(entry->param) : 1;
     DebugColor((res == 0) ? COLOR_GREEN : COLOR_RED, "%s: %s!", entry->name, (res == 0) ? "succeeded" : "failed");
     Debug("");

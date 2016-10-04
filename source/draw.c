@@ -29,14 +29,10 @@ void ClearScreen(u8* screen, int width, int color)
 
 void ClearScreenFull(bool clear_top, bool clear_bottom)
 {
-    if (clear_top) {
-        ClearScreen(TOP_SCREEN0, SCREEN_WIDTH_TOP, STD_COLOR_BG);
-        ClearScreen(TOP_SCREEN1, SCREEN_WIDTH_TOP, STD_COLOR_BG);
-    }
-    if (clear_bottom) {
-        ClearScreen(BOT_SCREEN0, SCREEN_WIDTH_BOT, STD_COLOR_BG);
-        ClearScreen(BOT_SCREEN1, SCREEN_WIDTH_BOT, STD_COLOR_BG);
-    }
+    if (clear_top)
+        ClearScreen(TOP_SCREEN, SCREEN_WIDTH_TOP, STD_COLOR_BG);
+    if (clear_bottom)
+        ClearScreen(BOT_SCREEN, SCREEN_WIDTH_BOT, STD_COLOR_BG);
 }
 
 void DrawCharacter(u8* screen, int character, int x, int y, int color, int bgcolor)
@@ -77,15 +73,21 @@ void DrawStringF(int x, int y, bool use_top, const char *format, ...)
     vsnprintf(str, 512, format, va);
     va_end(va);
 
-    for (char* text = strtok(str, "\n"); text != NULL; text = strtok(NULL, "\n"), y += 10) {
-        if (use_top) {
-            DrawString(TOP_SCREEN0, text, x, y, STD_COLOR_FONT, STD_COLOR_BG);
-            DrawString(TOP_SCREEN1, text, x, y, STD_COLOR_FONT, STD_COLOR_BG);
-        } else {
-            DrawString(BOT_SCREEN0, text, x, y, STD_COLOR_FONT, STD_COLOR_BG);
-            DrawString(BOT_SCREEN1, text, x, y, STD_COLOR_FONT, STD_COLOR_BG);
-        }
-    }
+    for (char* text = strtok(str, "\n"); text != NULL; text = strtok(NULL, "\n"), y += 10)
+        DrawString((use_top) ? TOP_SCREEN : BOT_SCREEN, text, x, y, STD_COLOR_FONT, STD_COLOR_BG);
+}
+
+void DrawStringFC(int x, int y, bool use_top, u32 color, const char *format, ...)
+{
+    char str[512] = { 0 }; // 512 should be more than enough
+    va_list va;
+
+    va_start(va, format);
+    vsnprintf(str, 512, format, va);
+    va_end(va);
+
+    for (char* text = strtok(str, "\n"); text != NULL; text = strtok(NULL, "\n"), y += 10)
+        DrawString((use_top) ? TOP_SCREEN : BOT_SCREEN, text, x, y, color, STD_COLOR_BG);
 }
 
 void Screenshot(const char* path)
@@ -119,10 +121,10 @@ void Screenshot(const char* path)
     memset(buffer, 0x1F, 400 * 240 * 3 * 2);
     for (u32 x = 0; x < 400; x++)
         for (u32 y = 0; y < 240; y++)
-            memcpy(buffer_t + (y*400 + x) * 3, TOP_SCREEN0 + (x*240 + y) * 3, 3);
+            memcpy(buffer_t + (y*400 + x) * 3, TOP_SCREEN + (x*240 + y) * 3, 3);
     for (u32 x = 0; x < 320; x++)
         for (u32 y = 0; y < 240; y++)
-            memcpy(buffer + (y*400 + x + 40) * 3, BOT_SCREEN0 + (x*240 + y) * 3, 3);
+            memcpy(buffer + (y*400 + x + 40) * 3, BOT_SCREEN + (x*240 + y) * 3, 3);
     FileWrite(bmp_header, 54, 0);
     FileWrite(buffer, 400 * 240 * 3 * 2, 54);
     FileClose();
@@ -133,8 +135,7 @@ void DebugClear()
     memset(debugstr, 0x00, DBG_N_CHARS_X * DBG_N_CHARS_Y);
     for (u32 y = 0; y < DBG_N_CHARS_Y; y++)
         debugcol[y] = DBG_COLOR_FONT;
-    ClearScreen(TOP_SCREEN0, SCREEN_WIDTH_TOP, DBG_COLOR_BG);
-    ClearScreen(TOP_SCREEN1, SCREEN_WIDTH_TOP, DBG_COLOR_BG);
+    ClearScreen(TOP_SCREEN, SCREEN_WIDTH_TOP, DBG_COLOR_BG);
     #if defined USE_THEME && defined GFX_DEBUG_BG
     LoadThemeGfx(GFX_DEBUG_BG, true);
     #endif
@@ -154,8 +155,7 @@ void DebugSet(const char **strs)
     u32* col = debugcol + (DBG_N_CHARS_Y - 1);
     for (char* str = debugstr + (DBG_N_CHARS_X * (DBG_N_CHARS_Y - 1)); str >= debugstr; str -= DBG_N_CHARS_X, col--) {
         if (*str != '\0') {
-            DrawString(TOP_SCREEN0, str, DBG_START_X, pos_y, *col, DBG_COLOR_BG);
-            DrawString(TOP_SCREEN1, str, DBG_START_X, pos_y, *col, DBG_COLOR_BG);
+            DrawString(TOP_SCREEN, str, DBG_START_X, pos_y, *col, DBG_COLOR_BG);
             pos_y += DBG_STEP_Y;
         }
     }
@@ -210,11 +210,9 @@ void ShowProgress(u64 current, u64 total)
     if (total > 0) {
         char progStr[8];
         snprintf(progStr, 8, "%3llu%%", (current * 100) / total);
-        DrawString(TOP_SCREEN0, progStr, progX, progY, DBG_COLOR_FONT, DBG_COLOR_BG);
-        DrawString(TOP_SCREEN1, progStr, progX, progY, DBG_COLOR_FONT, DBG_COLOR_BG);
+        DrawString(TOP_SCREEN, progStr, progX, progY, DBG_COLOR_FONT, DBG_COLOR_BG);
     } else {
-        DrawString(TOP_SCREEN0, "    ", progX, progY, DBG_COLOR_FONT, DBG_COLOR_BG);
-        DrawString(TOP_SCREEN1, "    ", progX, progY, DBG_COLOR_FONT, DBG_COLOR_BG);
+        DrawString(TOP_SCREEN, "    ", progX, progY, DBG_COLOR_FONT, DBG_COLOR_BG);
     }
 }
 #endif
