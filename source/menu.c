@@ -46,7 +46,7 @@ u32 ScrollOutput()
             l_curr--;
         } else if ((pad_state & BUTTON_DOWN) && (l_curr < l_total - DBG_N_CHARS_Y)) {
             l_curr++;
-        } else if (pad_state & (BUTTON_B | BUTTON_START)) {
+        } else if (pad_state & (BUTTON_B | BUTTON_START | BUTTON_HOME | BUTTON_POWER)) {
             return pad_state;
         }
     }
@@ -73,7 +73,7 @@ u32 UnmountSd()
     #endif
     while (true) {
         pad_state = InputWait();
-        if (((pad_state & BUTTON_B) && InitFS()) || (pad_state & BUTTON_START))
+        if (((pad_state & BUTTON_B) && InitFS()) || (pad_state & (BUTTON_START | BUTTON_HOME | BUTTON_POWER)))
             break;
     }
     
@@ -152,11 +152,11 @@ u32 ProcessEntry(MenuEntry* entry)
             if (unlockLvl == unlockLvlMax)
                 break;
             pad_state = InputWait();
-            if (!(pad_state & BUTTON_ANY))
+            if (!(pad_state & (BUTTON_ANY | BUTTON_HOME | BUTTON_POWER)))
                 continue;
             else if (pad_state & unlockSequence[unlockLvl])
                 unlockLvl++;
-            else if (pad_state & (BUTTON_B | BUTTON_START))
+            else if (pad_state & (BUTTON_B | BUTTON_START | BUTTON_HOME | BUTTON_POWER))
                 break;
             else if (unlockLvl == 0 || !(pad_state & unlockSequence[unlockLvl-1]))
                 unlockLvl = 0;
@@ -179,7 +179,7 @@ u32 ProcessEntry(MenuEntry* entry)
     #ifdef USE_THEME
     LoadThemeGfx((res == 0) ? GFX_DONE : GFX_FAILED, false);
     #endif
-    while(!((pad_state = InputWait()) & (BUTTON_B | BUTTON_START))) {
+    while(!((pad_state = InputWait()) & (BUTTON_B | BUTTON_START | BUTTON_HOME | BUTTON_POWER))) {
         if (pad_state & BUTTON_X) Screenshot(NULL);
         #ifdef LOG_FILE
         else if (pad_state & BUTTON_UP) {
