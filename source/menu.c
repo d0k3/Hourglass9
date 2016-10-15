@@ -91,7 +91,7 @@ void DrawMenu(MenuInfo* currMenu, u32 index, bool fullDraw, bool subMenu)
     
     if (fullDraw) { // draw full menu
         ClearScreenFull(true, !top_screen);
-        DrawStringFC(menublock_x0, menublock_y0 - 20, top_screen, COLOR_ACCENT, "%s", currMenu->name);
+        DrawStringF(menublock_x0, menublock_y0 - 20, top_screen, "%s", currMenu->name);
         DrawStringF(menublock_x0, menublock_y0 - 10, top_screen, "==============================");
         DrawStringF(menublock_x0, menublock_y1 +  0, top_screen, "==============================");
         DrawStringF(menublock_x0, menublock_y1 + 10, top_screen, (subMenu) ? "A: Choose  B: Return" : "A: Choose");

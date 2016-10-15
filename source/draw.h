@@ -40,7 +40,7 @@
 
 #define COLOR_ASK           COLOR_GREYGREEN
 #define COLOR_SELECT        COLOR_LIGHTGREY
-#define COLOR_ACCENT        COLOR_WHITE
+#define COLOR_ACCENT        COLOR_GREEN
 
 #ifndef USE_THEME
 #define STD_COLOR_BG   COLOR_BLACK
