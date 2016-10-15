@@ -26,7 +26,7 @@ The most important controls are displayed on screen, here is a list of all:
 * __POWER__ - Poweroff the console.
 * __START (+ LEFT)__ - Reboot (START only) / Poweroff (with LEFT).
 
-Most features require the user to choose a file or a directory. In these cases, use the arrow keys to select and A / B to confirm and cancel.
+Most features require the user to choose a file or a directory. In these cases, use the arrow keys to select and A / B to confirm and cancel. Also, most file write operations (NAND writes excluded) can be cancelled by holding B.
 
 ## License
 You may use this under the terms of the GNU General Public License GPL v2 or under the terms of any later revisions of the GPL. Refer to the provided `LICENSE.txt` file for further information.

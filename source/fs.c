@@ -2,6 +2,7 @@
 #include "draw.h"
 
 #include "fatfs/ff.h"
+#include "hid.h"
 
 static FATFS fs;
 static FIL file;
@@ -166,6 +167,17 @@ bool DebugFileRead(void* buf, size_t size, size_t foffset) {
         Debug("File too small or SD failure");
         return false;
     }
+    // NOT enabled -> dangerous on NAND writes
+    /* if (CheckButton(BUTTON_B)) {
+        DebugColor(COLOR_ASK, "Press <A> to cancel operation");
+        while (CheckButton(BUTTON_B)); // make sure <B> is no more pressed
+        if (InputWait() & BUTTON_A) {
+            DebugColor(COLOR_ASK, "(cancelled by user)");
+            return false;
+        } else {
+            Debug("Continuing operation...");
+        }
+    } */
     
     return true;
 }
@@ -188,6 +200,16 @@ bool DebugFileWrite(void* buf, size_t size, size_t foffset)
     if(bytesWritten != size) {
         Debug("SD failure or SD full");
         return false;
+    }
+    if (CheckButton(BUTTON_B)) {
+        DebugColor(COLOR_ASK, "Press <A> to cancel operation");
+        while (CheckButton(BUTTON_B)); // make sure <B> is no more pressed
+        if (InputWait() & BUTTON_A) {
+            DebugColor(COLOR_ASK, "(cancelled by user)");
+            return false;
+        } else {
+            Debug("Continuing operation...");
+        }
     }
     
     return true;

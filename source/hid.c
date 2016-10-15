@@ -19,3 +19,9 @@ u32 InputWait() {
             return pad_state;
     }
 }
+
+bool CheckButton(u32 button) {
+    u32 t_pressed = 0;
+    for(; (t_pressed < 0x13000) && ((HID_STATE & button) == button); t_pressed++);
+    return (t_pressed >= 0x13000);
+}

@@ -23,3 +23,4 @@
 #define BUTTON_HOME   (1 << 13)
 
 u32 InputWait();
+bool CheckButton(u32 button);
