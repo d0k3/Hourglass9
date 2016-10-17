@@ -113,6 +113,8 @@ u32 InitializeH9()
     if (InitFS()) {
         Debug("Initializing SD card... success");
         FileGetData("h9logo.bin", BOT_SCREEN, 320 * 240 * 3, 0);
+        Debug("Build: %s", BUILD_NAME);
+        Debug("Work directory: %s", GetWorkDir());
         if (SetupTwlKey0x03() != 0) // TWL KeyX / KeyY
             errorlevel = 2;
         if ((GetUnitPlatform() == PLATFORM_N3DS) && (SetupCtrNandKeyY0x05() != 0))
