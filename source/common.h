@@ -42,7 +42,7 @@
 #define BUFFER_MAX_SIZE ((u32) (1 * 1024 * 1024))
     
 // info / log file name
-#define VERSION_NAME "Hourglass9 v1.22"
+#define VERSION_NAME "Hourglass9 v1.30"
 #define LOG_FILE "Hourglass9.log"
 
 // hacky handling of D9 game dir stuff

@@ -9,6 +9,8 @@
 #include "decryptor/nand.h"
 #include "decryptor/nandfat.h"
 #include "decryptor/game.h"
+#include "decryptor/xorpad.h"
+#include "decryptor/selftest.h"
 #include "bottomlogo_bgr.h"
 
 #define SUBMENU_START 1
@@ -17,14 +19,15 @@ MenuInfo menu[] =
 {
     {
         #ifndef VERSION_NAME
-        "Hourglass9 Main Menu", 4,
+        "Hourglass9 Main Menu", 5,
         #else
-        VERSION_NAME, 4,
+        VERSION_NAME, 5,
         #endif
         {
             { "SysNAND Backup/Restore...",    NULL,                   SUBMENU_START + 0 },
             { "EmuNAND Backup/Restore...",    NULL,                   SUBMENU_START + 1 },
             { "Gamecart Dumper...",           NULL,                   SUBMENU_START + 2 },
+            { "Miscellaneous...",             NULL,                   SUBMENU_START + 3 },
             { "Validate NAND Dump",           &ValidateNandDump,      0 }
         }
     },
@@ -55,6 +58,17 @@ MenuInfo menu[] =
             { "Dump & Decrypt Cart (trim)",   &DumpGameCart,          CD_DECRYPT | CD_TRIM },
             { "Dump Cart to CIA",             &DumpGameCart,          CD_DECRYPT | CD_MAKECIA },
             { "Dump Private Header",          &DumpPrivateHeader,     0 }
+        }
+    },
+    {
+        "Miscellaneous Options", 6, // ID 3
+        {
+            { "SysNAND title to CIA",         &ConvertSdToCia,        0 },
+            { "EmuNAND title to CIA",         &ConvertSdToCia,        N_EMUNAND },
+            { "GBA VC Save Dump",             &DumpGbaVcSave,         0 },
+            { "GBA VC Save Inject",           &InjectGbaVcSave,       N_NANDWRITE },
+            { "NCCH Padgen",                  &NcchPadgen,            0 },
+            { "System Info",                  &SystemInfo,            0 }
         }
     },
     {
@@ -124,6 +138,8 @@ u32 InitializeH9()
         if (LoadKeyFromFile(0x18, 'X', NULL)) // NCCH Secure3 KeyX
             errorlevel = (errorlevel < 1) ? 1 : errorlevel;
         if (LoadKeyFromFile(0x1B, 'X', NULL)) // NCCH Secure4 KeyX
+            errorlevel = (errorlevel < 1) ? 1 : errorlevel;
+        if (SetupAgbCmacKeyY0x24()) // AGBSAVE CMAC KeyY
             errorlevel = (errorlevel < 1) ? 1 : errorlevel;
         Debug("Finalizing Initialization...");
         RemainingStorageSpace();
