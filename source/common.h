@@ -45,6 +45,9 @@
 #define VERSION_NAME "Hourglass9 v1.22"
 #define LOG_FILE "Hourglass9.log"
 
+// hacky handling of D9 game dir stuff
+#define GetGameDir GetWorkDir
+
 static inline u32 strchrcount(const char* str, char symbol) {
     u32 count = 0;
     for (u32 i = 0; str[i] != '\0'; i++) {

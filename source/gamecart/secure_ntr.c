@@ -311,7 +311,7 @@ bool NTR_Secure_Init (u8* header, u32 CartID, int iCardDevice)
     }
     else
     {
-        Debug("Invalid secure area.(%08X %08X)", secureArea[0], secureArea[1]);
+        Debug("Invalid secure area (%08X %08X)", secureArea[0], secureArea[1]);
         //dragon quest 5 has invalid secure area. really.
 		//return false;
     }

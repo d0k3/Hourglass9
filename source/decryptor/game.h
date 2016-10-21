@@ -115,9 +115,12 @@ typedef struct {
 	u8 permit_mask[4];
 	u8 title_export;
 	u8 commonkey_idx;
-	u8 unknown_buf[0x30];
+    u8 reserved1[0x2A];
+    u8 eshop_id[4];
+    u8 reserved2;
+    u8 audit;
 	u8 content_permissions[0x40];
-	u8 reserved1[2];
+	u8 reserved3[2];
 	u8 timelimits[0x40];
     u8 content_index[0xAC];
 } __attribute__((packed)) Ticket;
@@ -194,10 +197,20 @@ typedef struct {
     u8  content_index[0x2000];
 } __attribute__((packed)) CiaHeader;
 
+u32 GetSdCtr(u8* ctr, const char* path);
 u32 GetNcchCtr(u8* ctr, NcchHeader* ncch, u8 sub_id);
+u32 SdFolderSelector(char* path, u8* keyY, bool title_select);
 u32 CryptSdToSd(const char* filename, u32 offset, u32 size, CryptBufferInfo* info, bool handle_offset16);
 u32 CryptNcch(const char* filename, u32 offset, u32 size, u64 seedId, u8* encrypt_flags);
+u32 CryptCia(const char* filename, u8* ncch_crypt, bool cia_encrypt, bool cxi_only);
+u32 CryptBoss(const char* filename, bool encrypt);
 
 // --> FEATURE FUNCTIONS <--
+u32 CryptGameFiles(u32 param);
+u32 ConvertNcsdNcchToCia(u32 param);
+u32 CryptSdFiles(u32 param);
+u32 DecryptSdFilesDirect(u32 param);
+u32 ConvertSdToCia(u32 param);
+u32 DecryptSdToCxi(u32 param);
 u32 DumpGameCart(u32 param);
 u32 DumpPrivateHeader(u32 param);
