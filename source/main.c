@@ -63,8 +63,8 @@ MenuInfo menu[] =
     {
         "Miscellaneous Options", 6, // ID 3
         {
-            { "SysNAND title to CIA",         &ConvertSdToCia,        0 },
-            { "EmuNAND title to CIA",         &ConvertSdToCia,        N_EMUNAND },
+            { "SysNAND title to CIA",         &ConvertSdToCia,        GC_CIA_DEEP },
+            { "EmuNAND title to CIA",         &ConvertSdToCia,        GC_CIA_DEEP | N_EMUNAND },
             { "GBA VC Save Dump",             &DumpGbaVcSave,         0 },
             { "GBA VC Save Inject",           &InjectGbaVcSave,       N_NANDWRITE },
             { "NCCH Padgen",                  &NcchPadgen,            0 },
