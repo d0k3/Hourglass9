@@ -99,6 +99,19 @@ u32 SdFolderSelector(char* path, u8* keyY, bool title_select)
     if (n_dirs == 0) {
         Debug("No valid SD data found");
         return 1;
+    } else { // sort the dir list
+        bool swapped;
+        do {
+            swapped = false;
+            for (u32 i = 0; i < n_dirs - 1; i++) {
+                if (strncmp(dirptr[i], dirptr[i+1], 256) > 0) {
+                    char* swap = dirptr[i];
+                    dirptr[i] = dirptr[i+1];
+                    dirptr[i+1] = swap;
+                    swapped = true;
+                }
+            }
+        } while (swapped);
     }
     
     // let the user choose a directory
@@ -320,32 +333,37 @@ u32 CryptNcch(const char* filename, u32 offset, u32 size, u64 seedId, u8* encryp
     
     // check / setup seed crypto
     if (usesSeedCrypto) {
-        if (FileOpen("seeddb.bin")) {
+        u8 seed[16];
+        u32 found = 0;
+        if (FindSeedInSeedSave(seed, seedId) == 0) { // try loading from NAND
+            Debug("Loading seed from NAND: ok");
+            found = 1;
+        } else if (FileOpen("seeddb.bin")) { // try loading from seeddb.bin
             SeedInfoEntry* entry = (SeedInfoEntry*) buffer;
-            u32 found = 0;
             for (u32 i = 0x10;; i += 0x20) {
                 if (FileRead(entry, 0x20, i) != 0x20)
                     break;
                 if (entry->titleId == seedId) {
-                    u8 keydata[32];
-                    memcpy(keydata, ncch->signature, 16);
-                    memcpy(keydata + 16, entry->external_seed, 16);
-                    u8 sha256sum[32];
-                    sha_quick(sha256sum, keydata, 32, SHA256_MODE);
-                    memcpy(seedKeyY, sha256sum, 16);
+                    memcpy(seed, entry->external_seed, 16);
+                    Debug("Loading seed from seeddb.bin: ok");
                     found = 1;
+                    break;
                 }
             }
             FileClose();
-            if (!found) {
-                Debug("Seed not found in seeddb.bin!");
-                return 1;
-            }
+        }
+        if (found) {
+            u8 keydata[32];
+            memcpy(keydata, ncch->signature, 16);
+            memcpy(keydata + 16, seed, 16);
+            u8 sha256sum[32];
+            sha_quick(sha256sum, keydata, 32, SHA256_MODE);
+            memcpy(seedKeyY, sha256sum, 16);
         } else {
-            Debug("Need seeddb.bin for seed crypto!");
+            Debug("Seed not found in seeddb.bin or NAND!");
+            Debug("Try updating your seeddb.bin");
             return 1;
         }
-        Debug("Loading seed from seeddb.bin: ok");
     }
     
     // basic setup of CryptBufferInfo structs
@@ -611,22 +629,21 @@ u32 CryptCia(const char* filename, u8* ncch_crypt, bool cia_encrypt, bool cxi_on
             }
             n_processed++;
         }
-        if (!untouched && (result == 0)) {
-            // recalculate content info hashes
-            Debug("Recalculating TMD hashes...");
-            for (u32 i = 0, kc = 0; i < 64 && kc < content_count; i++) {
-                TmdContentInfo* cntinfo = tmd->contentinfo + i;
-                u32 k = getbe16(cntinfo->cmd_count);
-                sha_quick(cntinfo->hash, content_list + kc, k * sizeof(TmdContentChunk), SHA256_MODE);
-                kc += k;
-            }
-            sha_quick(tmd->contentinfo_hash, (u8*)tmd->contentinfo, 64 * sizeof(TmdContentInfo), SHA256_MODE);
-        }
     }
     
     if (untouched) {
         Debug((cia_encrypt) ? "CIA is already encrypted" : "CIA is not encrypted");
     } else if (n_processed > 0) {
+        // recalculate content info hashes
+        Debug("Recalculating TMD hashes...");
+        for (u32 i = 0, kc = 0; i < 64 && kc < content_count; i++) {
+            TmdContentInfo* cntinfo = tmd->contentinfo + i;
+            u32 k = getbe16(cntinfo->cmd_count);
+            sha_quick(cntinfo->hash, content_list + kc, k * sizeof(TmdContentChunk), SHA256_MODE);
+            kc += k;
+        }
+        sha_quick(tmd->contentinfo_hash, (u8*)tmd->contentinfo, 64 * sizeof(TmdContentInfo), SHA256_MODE);
+        // write ticket / tmd
         if (!FileOpen(filename)) // already checked this file
             return 1;
         if (!DebugFileWrite(buffer, cia.size_ticktmd, cia.offset_ticktmd))
@@ -1152,6 +1169,7 @@ u32 ConvertNcsdNcchToCia(u32 param)
             continue; // skip NAND backup NCSDs
         
         n_failed++; // this will be set back upon completion
+        Debug("");
         Debug("Converting to CIA: %s", path + path_len);
         
         // build the CIA stub
@@ -1353,7 +1371,6 @@ u32 DecryptSdFilesDirect(u32 param)
 
 u32 ConvertSdToCia(u32 param)
 {
-    (void) (param); // param is unused here
     char* filelist = (char*) 0x20400000;
     u8 movable_keyY[16] = { 0 };
     char titlepath[256];
@@ -1429,21 +1446,23 @@ u32 ConvertSdToCia(u32 param)
         }
         CiaInfo cia;
         GetCiaInfo(&cia, (CiaHeader*) stub);
+        tmd = (TitleMetaData*) (stub + cia.offset_tmd);
+        content_list = (TmdContentChunk*) (tmd + 1);
         
         // search for proper ticket
         u32 t_offset, t_size;
-        bool tik_found = false;
+        bool tik_legit = false;
         PartitionInfo* ctrnand_info = GetPartitionInfo(P_CTRNAND);
         Ticket* ticket = (Ticket*) (stub + cia.offset_ticket);
         Debug("Searching for proper ticket...");
         if (SeekFileInNand(&t_offset, &t_size, "DBS        TICKET  DB ", ctrnand_info) == 0) {
-            for (u32 offset = 0; (offset < t_size) && !tik_found; offset += BUFFER_MAX_SIZE - (2 * NAND_SECTOR_SIZE)) {
+            for (u32 offset = 0; (offset < t_size) && !tik_legit; offset += BUFFER_MAX_SIZE - (2 * NAND_SECTOR_SIZE)) {
                 const u8 sig_type[4] =  { 0x00, 0x01, 0x00, 0x04 };
                 u32 read_bytes = min(BUFFER_MAX_SIZE, (t_size - offset));
                 ShowProgress(offset, t_size);
                 if (DecryptNandToMem(buffer, t_offset + offset, read_bytes, ctrnand_info) != 0)
                     continue;
-                for (u32 i = 0x140; (i < read_bytes - 0x210) && !tik_found; i++) {
+                for (u32 i = 0x140; (i < read_bytes - 0x210) && !tik_legit; i++) {
                     if ((memcmp(buffer + i, (u8*) "Root-CA00000003-XS0000000c", 26) == 0) &&
                         (memcmp(buffer + i - 0x140, sig_type, 4) == 0)) {
                         // u32 consoleId = getle32(buffer + i + 0x98);
@@ -1451,18 +1470,43 @@ u32 ConvertSdToCia(u32 param)
                         if (memcmp(titleId, ticket->title_id, 8) == 0) {
                             Debug("Found ticket, injecting...");
                             memcpy(ticket, buffer + i - 0x140, sizeof(Ticket));
-                            memset(ticket->console_id, 0, 4); // zero out console id
-                            memset(ticket->eshop_id, 0, 4); // zero out eshop id
-                            tik_found = true;
+                            tik_legit = true;
                         }
                     }
                 }
             }
         }
         
-        if (!tik_found) {
+        if (!tik_legit)
             Debug("Ticket not found, skipped");
-        } else { // setup slot 0x11 for titlekey crypto
+        
+        // wipe console unique info
+        if (getbe32(ticket->console_id) || getbe32(ticket->eshop_id)) {
+            Debug("Console unique info found, wiping...");
+            memset(ticket->console_id, 0, 4); // zero out console id
+            memset(ticket->eshop_id, 0, 4); // zero out eshop id
+            memset(ticket->ticket_id, 0, 8); // zero out ticket id
+        }
+        
+        // not (no more?) a legit ticket
+        if (!getbe64(ticket->ticket_id))
+            tik_legit = false;
+        
+        // not a legit ticket or decrypted param, no need to reencrypt
+        if (!tik_legit || (param & GC_CIA_DEEP)) {
+            u32 content_count = getbe16(tmd->content_count);
+            if (!tik_legit && !(param & GC_CIA_DEEP))
+                Debug("Ticket not legit, disabling reencrypt...");
+            for (u32 c = 0; c < content_count; c++)
+                content_list[c].type[1] &= (0xFF^0x1);
+            for (u32 i = 0, kc = 0; i < 64 && kc < content_count; i++) {
+                TmdContentInfo* cntinfo = tmd->contentinfo + i;
+                u32 k = getbe16(cntinfo->cmd_count);
+                sha_quick(cntinfo->hash, content_list + kc, k * sizeof(TmdContentChunk), SHA256_MODE);
+                kc += k;
+            }
+            sha_quick(tmd->contentinfo_hash, (u8*)tmd->contentinfo, 64 * sizeof(TmdContentInfo), SHA256_MODE);
+        }  else { // setup slot 0x11 for titlekey crypto
             TitleKeyEntry titlekeyEntry;
             memcpy(titlekeyEntry.titleId, ticket->title_id, 8);
             memcpy(titlekeyEntry.titleKey, ticket->titlekey, 16);
@@ -1479,50 +1523,60 @@ u32 ConvertSdToCia(u32 param)
         }
         
         // inject content file(s)
+        u32 c = 0;
         u32 next_offset = stub_size;
         u32 content_count = getbe16(tmd->content_count);
-        for (u32 i = 0; i < content_count; i++) {
-            u32 id = getbe32(content_list[i].id);
-            u32 size = (u32) getbe64(content_list[i].size);
+        for (c = 0; c < content_count; c++) {
+            u32 id = getbe32(content_list[c].id);
+            u32 size = (u32) getbe64(content_list[c].size);
             u32 offset = next_offset;
             next_offset = offset + size;
             snprintf(filename, 16, "/%08lx.app", id);
             Debug("Injecting content id %08lX (%lu kB)...", id, size / 1024);
             if (!FileOpen(titlepath)) {
                 Debug("Content not found");
-                continue;
+                break;
             }
             if (FileInjectTo(ciapath, 0, offset, size, false, buffer, BUFFER_MAX_SIZE) != size) {
                 Debug("Content has bad size");
                 FileClose();
-                continue;
+                break;
             }
             FileClose();
-            Debug("Decrypting content id %08lX...", id);
+            Debug("Decrypting content id %08lX (SD)...", id);
             GetSdCtr(info.ctr, subpath);
             if (CryptSdToSd(ciapath, offset, size, &info, false) != 0) {
                 Debug("Failed decrypting content");
-                continue;
+                break;
+            }
+            if (param & GC_CIA_DEEP) {
+                Debug("Decrypting content id %08lX (NCCH)...", id);
+                if (CryptNcch(ciapath, offset, size, 0, NULL) == 1) {
+                    Debug("Failed decrypting content");
+                    break;
+                }
             }
         }
+        if (c < content_count)
+            continue; // error, skip the remaing steps
         
         // finalize the CIA file
         Debug("Finalizing CIA file...");
-        if (FinalizeCiaFile(ciapath, true) != 0) {
+        if (FinalizeCiaFile(ciapath, !(param & GC_CIA_DEEP)) != 0) {
             Debug("Failed!");
             continue;
         }
         
         next_offset = stub_size;
-        for (u32 i = 0; i < content_count; i++) {
-            if (content_list[i].type[1] & 0x1) { // redo titlekey crypto (because hashes & signatures)
-                u32 id = getbe32(content_list[i].id);
-                u32 size = (u32) getbe64(content_list[i].size);
+        for (c = 0; c < content_count; c++) {
+            if (content_list[c].type[1] & 0x1) { // redo titlekey crypto (because hashes & signatures)
+                u32 id = getbe32(content_list[c].id);
+                u32 size = (u32) getbe64(content_list[c].size);
                 u32 offset = next_offset;
                 next_offset = offset + size;
                 CryptBufferInfo info_tk = {.setKeyY = 0, .keyslot = 0x11, .mode = AES_CNT_TITLEKEY_ENCRYPT_MODE};
                 memset(info_tk.ctr, 0x00, 16);
-                memcpy(info_tk.ctr, content_list[i].index, 2);
+                memcpy(info_tk.ctr, content_list[c].index, 2);
                 Debug("Reencrypting content id %08lX...", id);
                 if (CryptSdToSd(ciapath, offset, size, &info_tk, false) != 0) {
                     Debug("Failed encrypting content");
@@ -1530,13 +1584,15 @@ u32 ConvertSdToCia(u32 param)
                 }
             }
         }
+        if (c < content_count)
+            continue; // error, skip the remaing steps
         
         n_failed--;
         n_processed++;
         Debug("");
     }
     
-    if (n_processed) {
+    if (n_processed || n_failed) {
         Debug("%ux generated / %ux failed", n_processed, n_failed);
     } else {
         Debug("No usable content found");
@@ -1617,7 +1673,7 @@ u32 DecryptSdToCxi(u32 param)
         // check for empty content list
         if (!getbe16(tmd->content_count)) {
             Debug("Content list is empty"); // won't happen
-            return 1;
+            continue;
         }
         
         // copy first content
@@ -1627,12 +1683,12 @@ u32 DecryptSdToCxi(u32 param)
         Debug("Copying content id %08lX (%lu kB)...", id, size / 1024);
         if (!FileOpen(titlepath)) {
             Debug("Content not found");
-            return 1;
+            continue;
         }
         if (FileCopyTo(cxipath, buffer, BUFFER_MAX_SIZE) != size) {
             Debug("Content has bad size");
             FileClose();
-            return 1;
+            continue;
         }
         FileClose();
         
@@ -1641,19 +1697,20 @@ u32 DecryptSdToCxi(u32 param)
         GetSdCtr(info.ctr, subpath);
         if (CryptSdToSd(cxipath, 0, size, &info, false) != 0) {
             Debug("Failed decrypting content");
-            return 1;
+            continue;
         }
         
         // NCCH decryption
         Debug("Decrypting (NCCH) content id %08lX...", id);
-        CryptNcch(cxipath, 0, size, 0, NULL);
+        if (CryptNcch(cxipath, 0, size, 0, NULL) == 1)
+            continue;
         
         n_failed--;
         n_processed++;
         Debug("");
     }
     
-    if (n_processed) {
+    if (n_processed || n_failed) {
         Debug("%ux generated / %ux failed", n_processed, n_failed);
     } else {
         Debug("No usable content found");
