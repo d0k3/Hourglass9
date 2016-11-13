@@ -117,6 +117,8 @@ u32 DumpTicketsTitlekeys(u32 param)
                 }
                 nKeys++;
             }
+            if (DebugCheckCancel())
+                return 1;
         }
         if (nKeys == MAX_ENTRIES) {
             Debug("Maximum number of %s found", (param & TK_TICKETS) ? "tickets" : "titlekeys");

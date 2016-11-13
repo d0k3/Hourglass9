@@ -39,6 +39,21 @@ const char* GetWorkDir()
     return ((i >= n_dirs) ? root : work_dirs[i]);
 }
 
+bool DebugCheckCancel(void)
+{
+    if (CheckButton(BUTTON_B)) {
+        DebugColor(COLOR_ASK, "Press <A> to cancel operation");
+        while (CheckButton(BUTTON_B)); // make sure <B> is no more pressed
+        if (InputWait() & BUTTON_A) {
+            DebugColor(COLOR_ASK, "(cancelled by user)");
+            return true;
+        } else {
+            Debug("Continuing operation...");
+        }
+    }
+    return false;
+}
+
 bool DebugCheckFreeSpace(size_t required)
 {
     if (required > RemainingStorageSpace()) {
@@ -140,6 +155,8 @@ size_t FileInjectTo(const char* dest, u32 offset_in, u32 offset_out, u32 size, b
             result = 0;
             break;
         }
+        if (DebugCheckCancel())
+            return 0;
     }
     ShowProgress(0, 0);
     f_close(&dfile);
@@ -168,16 +185,8 @@ bool DebugFileRead(void* buf, size_t size, size_t foffset) {
         return false;
     }
     // NOT enabled -> dangerous on NAND writes
-    /* if (CheckButton(BUTTON_B)) {
-        DebugColor(COLOR_ASK, "Press <A> to cancel operation");
-        while (CheckButton(BUTTON_B)); // make sure <B> is no more pressed
-        if (InputWait() & BUTTON_A) {
-            DebugColor(COLOR_ASK, "(cancelled by user)");
-            return false;
-        } else {
-            Debug("Continuing operation...");
-        }
-    } */
+    /* if (DebugCheckCancel())
+        return false; */
     
     return true;
 }
@@ -201,16 +210,8 @@ bool DebugFileWrite(void* buf, size_t size, size_t foffset)
         Debug("SD failure or SD full");
         return false;
     }
-    if (CheckButton(BUTTON_B)) {
-        DebugColor(COLOR_ASK, "Press <A> to cancel operation");
-        while (CheckButton(BUTTON_B)); // make sure <B> is no more pressed
-        if (InputWait() & BUTTON_A) {
-            DebugColor(COLOR_ASK, "(cancelled by user)");
-            return false;
-        } else {
-            Debug("Continuing operation...");
-        }
-    }
+    if (DebugCheckCancel())
+        return false;
     
     return true;
 }
