@@ -5,10 +5,12 @@
 #include "decryptor/hashfile.h"
 #include "decryptor/nand.h"
 #include "decryptor/nandfat.h"
+#include "decryptor/keys.h"
 #include "decryptor/transfer.h"
 #include "fatfs/sdmmc.h"
 #include "NCSD_header_o3ds_hdr.h"
 #include "NCSD_header_n3ds_hdr.h"
+#include "NCSD_header_o3ds_dev_hdr.h"
 
 #define O3DS_TRANSFER_SIZE  0x2F5D0000
 #define N3DS_TRANSFER_SIZE  0x41ED0000
@@ -124,19 +126,32 @@ u32 NandTransfer(u32 param) {
     Debug("");
     Debug("Step #3: Injecting CTRNAND transfer image");
     if (p_info->size != imgsize) {
+        u32 keys_type = GetUnitKeysType();
         if (GetUnitPlatform() != PLATFORM_N3DS) // extra safety, not actually needed
             return 1;
         Debug("Switching out NAND header first...");
-        if ((imgsize == O3DS_TRANSFER_SIZE) && // use hardcoded o3ds header
-            ((NCSD_header_o3ds_hdr_size != 0x200) || (PutNandHeader((u8*) NCSD_header_o3ds_hdr) != 0))) {
-            return 1;
-        } else if ((imgsize == N3DS_TRANSFER_SIZE) && (PutNandHeader(NULL) != 0)) { // use N3DS header backup
-            if ((param & TF_FORCED) && // use hardcoded N3DS header (from a different console)
-                (NCSD_header_n3ds_hdr_size == 0x200) && (PutNandHeader((u8*) NCSD_header_n3ds_hdr) == 0)) {
-                Debug("Forced transfer, using illegit N3DS header");
-            } else {
+        if (keys_type == KEYS_RETAIL) { // for retail N3DS
+            if ((imgsize == O3DS_TRANSFER_SIZE) && // use hardcoded o3ds header
+                ((NCSD_header_o3ds_hdr_size != 0x200) || (PutNandHeader((u8*) NCSD_header_o3ds_hdr) != 0))) {
+                return 1;
+            } else if ((imgsize == N3DS_TRANSFER_SIZE) && (PutNandHeader(NULL) != 0)) { // use N3DS header backup
+                if ((param & TF_FORCED) && // use hardcoded N3DS header (from a different console)
+                    (NCSD_header_n3ds_hdr_size == 0x200) && (PutNandHeader((u8*) NCSD_header_n3ds_hdr) == 0)) {
+                    Debug("Forced transfer, using illegit N3DS header");
+                } else {
+                    return 1;
+                }
+            }
+        } else if (keys_type == KEYS_DEVKIT) { // for devkit N3DS
+            if ((imgsize == O3DS_TRANSFER_SIZE) && // use hardcoded o3ds header
+                ((NCSD_header_o3ds_dev_hdr_size != 0x200) || (PutNandHeader((u8*) NCSD_header_o3ds_dev_hdr) != 0))) {
+                return 1;
+            } else if ((imgsize == N3DS_TRANSFER_SIZE) && (PutNandHeader(NULL) != 0)) { // use N3DS header backup
                 return 1;
             }
+        } else {
+            Debug("Console type (retail/devkit) not detected!");
+            return 1;
         }
         p_info = GetPartitionInfo(P_CTRFULL);
         if (p_info->size != imgsize)

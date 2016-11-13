@@ -209,7 +209,7 @@ u32 DebugSeekTitleInNand(u32* offset_tmd, u32* size_tmd, u32* offset_app, u32* s
             tid_low = title_info->tid_low[r];
         if ((tid_low == 0) || ((u32) r == ((region >= 3) ? region - 1 : region)))
             continue;
-        Debug("Trying title ID %08lX%08lX (region %u)", tid_high, tid_low, (r < 0) ? region : (r < 3) ? r : r + 1);
+        Debug("Trying title ID %08lX%08lX (region %u)", tid_high, tid_low, (r < 0) ? region : (u32) ((r < 3) ? r : r + 1));
         Debug("Method 1: Search in title.db...");
         if (SeekTitleInNandDb(tid_high, tid_low, &tmd_id) == 0) {
             char path[64];
@@ -795,10 +795,100 @@ u32 AutoFixCtrnand(u32 param)
     return 0;
 }
 
+u32 DumpCitraConfig(u32 param)
+{
+    (void) (param); // param is unused here
+    
+    static const u32 config_offset[2] = { 0x6000, 0x25000 };
+    static const u32 config_size = 0x8000;
+    static const u8 magic[] = { 0x41, 0x00, 0xE4, 0x41, 0x00, 0x00, 0x00, 0x00, 0x39, 0x00 };
+    
+    NandFileInfo* f_info = GetNandFileInfo(F_CONFIGSAVE);
+    PartitionInfo* p_info = GetPartitionInfo(f_info->partition_id);
+    u8* buffer = BUFFER_ADDRESS;
+    
+    u32 p_active = 0;
+    u32 offset;
+    u32 size;
+    
+    // search for config save
+    if (DebugSeekFileInNand(&offset, &size, f_info->name_l, f_info->path, p_info) != 0)
+        return 1;
+    
+    // get active partition from DISA
+    if (DecryptNandToMem(buffer, offset, 0x200, p_info) != 0)
+        return 1;
+    p_active = (getle32(buffer + 0x168)) ? 1 : 0;
+    
+    Debug("");
+    for (u32 i = 0; i < 2; i++) {
+        char filename[64];
+        u32 p = (i + p_active) % 2; // offset / partition to try;
+        Debug("Trying offset 0x%06X, partition %u...", config_offset[p], p);
+        if (DecryptNandToMem(buffer, offset + config_offset[p], 0x200, p_info) != 0)
+            return 1;
+        if (memcmp(buffer, magic, sizeof(magic)) != 0) {
+            Debug("Magic not found!");
+            continue;
+        }
+        if (OutputFileNameSelector(filename, "config", NULL) != 0)
+            return 1;
+        if (DecryptNandToFile(filename, offset + config_offset[p], config_size, p_info, NULL) != 0)
+            return 1;
+        return 0;
+    }
+    
+    return 1; // failed if arriving here
+}
+
+u32 FindSeedInSeedSave(u8* seed, u64 titleId)
+{
+    // there are two offsets where seeds can be found - 0x07000 & 0x5C000
+    static const u32 seed_offset[2] = {0x7000, 0x5C000};
+    
+    NandFileInfo* f_info = GetNandFileInfo(F_SEEDSAVE);
+    PartitionInfo* p_info = GetPartitionInfo(f_info->partition_id);
+    u8* buffer = BUFFER_ADDRESS;
+    
+    u32 offset;
+    u32 size;
+    
+    // load full seedsave to memory
+    if (SeekFileInNand(&offset, &size, f_info->path, p_info) != 0)
+        return 1;
+    if (size != 0xAC000) {
+        Debug("Expected %ukB, failed!", 0xAC000 / 1024);
+        return 1;
+    }
+    if (DecryptNandToMem(buffer, offset, size, p_info) != 0)
+        return 1;
+    
+    // search and extract seeds
+    for ( int n = 0; n < 2; n++ ) {
+        u8* seed_data = buffer + seed_offset[n];
+        for ( size_t i = 0; i < 2000; i++ ) {
+            // 2000 seed entries max, splitted into title id and seed area
+            u8* ltitleId = seed_data + (i*8);
+            u8* lseed = seed_data + (2000*8) + (i*16);
+            if (titleId != getle64(ltitleId))
+                continue;
+            memcpy(seed, lseed, 16);
+            return 0;
+        }
+    }
+    
+    // not found if arriving here
+    return 1;
+}
+
 u32 UpdateSeedDb(u32 param)
 {
     (void) (param); // param is unused here
-    PartitionInfo* ctrnand_info = GetPartitionInfo(P_CTRNAND);
+    // there are two offsets where seeds can be found - 0x07000 & 0x5C000
+    static const u32 seed_offset[2] = {0x7000, 0x5C000};
+    
+    NandFileInfo* f_info = GetNandFileInfo(F_SEEDSAVE);
+    PartitionInfo* p_info = GetPartitionInfo(f_info->partition_id);
     u8* buffer = BUFFER_ADDRESS;
     SeedInfo *seedinfo = (SeedInfo*) 0x20400000;
     
@@ -807,46 +897,32 @@ u32 UpdateSeedDb(u32 param)
     u32 size;
     
     // load full seedsave to memory
-    Debug("Searching for seedsave...");
-    if (SeekFileInNand(&offset, &size, "DATA       ???????????SYSDATA    0001000F   00000000   ", ctrnand_info) != 0) {
-        Debug("Failed!");
+    if (DebugSeekFileInNand(&offset, &size, f_info->name_l, f_info->path, p_info) != 0)
         return 1;
-    }
-    Debug("Found at %08X, size %ukB", offset, size / 1024);
     if (size != 0xAC000) {
-        Debug("Expected %ukB, failed!", 0xAC000);
+        Debug("Expected %ukB, failed!", 0xAC000 / 1024);
         return 1;
     }
-    if (DecryptNandToMem(buffer, offset, size, ctrnand_info) != 0)
+    if (DecryptNandToMem(buffer, offset, size, p_info) != 0)
         return 1;
     
     // load / create seeddb.bin
-    if (DebugFileOpen("seeddb.bin")) {
-        if (!DebugFileRead(seedinfo, 16, 0)) {
-            FileClose();
+    u32 size_seeddb;
+    if ((size_seeddb = FileGetData("seeddb.bin", seedinfo, sizeof(SeedInfo), 0))) {
+        if ((seedinfo->n_entries > MAX_ENTRIES) || (size_seeddb != 16 + seedinfo->n_entries * sizeof(SeedInfoEntry))) {
+            Debug("seeddb.bin found, but seems corrupt");
             return 1;
-        }
-        if (seedinfo->n_entries > MAX_ENTRIES) {
-            Debug("seeddb.bin seems to be corrupt!");
-            FileClose();
-            return 1;
-        }
-        if (!DebugFileRead(seedinfo->entries, seedinfo->n_entries * sizeof(SeedInfoEntry), 16)) {
-            FileClose();
-            return 1;
+        } else {
+            Debug("Using existing seeddb.bin");
         }
     } else {
-        if (!DebugFileCreate("seeddb.bin", true))
-            return 1;
+        Debug("Creating new seeddb.bin");
         memset(seedinfo, 0x00, 16);
-        DebugFileWrite(seedinfo, 16, 0);
     }
     
     // search and extract seeds
     for ( int n = 0; n < 2; n++ ) {
-        // there are two offsets where seeds can be found - 0x07000 & 0x5C000
-        static const int seed_offsets[2] = {0x7000, 0x5C000};
-        unsigned char* seed_data = buffer + seed_offsets[n];
+        u8* seed_data = buffer + seed_offset[n];
         for ( size_t i = 0; i < 2000; i++ ) {
             static const u8 zeroes[16] = { 0x00 };
             // magic number is the reversed first 4 byte of a title id
@@ -858,7 +934,7 @@ u32 UpdateSeedDb(u32 param)
                 continue;
             // Bravely Second demo seed workaround
             if (memcmp(seed, zeroes, 16) == 0)
-                seed = buffer + seed_offsets[(n+1)%2] + (2000 * 8) + (i*16);
+                seed = buffer + seed_offset[(n+1)%2] + (2000 * 8) + (i*16);
             if (memcmp(seed, zeroes, 16) == 0)
                 continue;
             // seed found, check if it already exists
@@ -882,16 +958,14 @@ u32 UpdateSeedDb(u32 param)
     
     if (nNewSeeds == 0) {
         Debug("Found no new seeds, %i total", seedinfo->n_entries);
-        FileClose();
         return 0;
     }
     
     Debug("Found %i new seeds, %i total", nNewSeeds, seedinfo->n_entries);
-    if (!DebugFileWrite(seedinfo, 16 + seedinfo->n_entries * sizeof(SeedInfoEntry), 0)) {
-        FileClose();
+    if (!FileDumpData("seeddb.bin", seedinfo, 16 + seedinfo->n_entries * sizeof(SeedInfoEntry))) {
+        Debug("Failed writing file");
         return 1;
     }
-    FileClose();
     
     return 0;
 }

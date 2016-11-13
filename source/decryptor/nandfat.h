@@ -44,6 +44,7 @@ u32 GetRegion(void);
 u32 GetSystemId0(u8* id0);
 u32 DumpNcchFirm(u32 firm_idx, bool version, bool a9l_decrypt);
 u32 CheckNandFile(u32 param);
+u32 FindSeedInSeedSave(u8* seed, u64 titleId);
 
 // --> FEATURE FUNCTIONS <--
 u32 DumpNandFile(u32 param);
@@ -52,4 +53,5 @@ u32 DumpHealthAndSafety(u32 param);
 u32 InjectHealthAndSafety(u32 param);
 u32 DumpNcchFirms(u32 param);
 u32 AutoFixCtrnand(u32 param);
+u32 DumpCitraConfig(u32 param);
 u32 UpdateSeedDb(u32 param);
