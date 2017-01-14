@@ -9,6 +9,7 @@
 
 typedef struct {
     char* name;
+    char* info;
     u32 (*function)(u32 param);
     u32 param;
 } MenuEntry;

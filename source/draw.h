@@ -62,11 +62,15 @@
 #define TOP_SCREEN (u8*)(*(u32*)0x23FFFE00)
 #define BOT_SCREEN (u8*)(*(u32*)0x23FFFE08)
 
+#define ScreenWidth(x)       (((x) == (TOP_SCREEN) ? 400 : 320))
+#define IsCharPartOfWord(x)  (((x) >= 'a' && (x) <= 'z') || ((x) >= '0' && (x) <= '9') || ((x) >= 'A' && (x) <= 'Z'))
+
+
 void ClearScreen(unsigned char *screen, int width, int color);
 void ClearScreenFull(bool clear_top, bool clear_bottom);
 
 void DrawCharacter(unsigned char *screen, int character, int x, int y, int color, int bgcolor);
-void DrawString(unsigned char *screen, const char *str, int x, int y, int color, int bgcolor);
+int  DrawString(unsigned char *screen, const char *str, int x, int y, int color, int bgcolor);
 void DrawStringF(int x, int y, bool use_top, const char *format, ...);
 void DrawStringFC(int x, int y, bool use_top, u32 color, const char *format, ...);
 

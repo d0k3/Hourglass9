@@ -58,10 +58,56 @@ void DrawCharacter(u8* screen, int character, int x, int y, int color, int bgcol
     }
 }
 
-void DrawString(u8* screen, const char *str, int x, int y, int color, int bgcolor)
+int DrawString(u8* screen, const char *str, int x, int y, int color, int bgcolor)
 {
-    for (size_t i = 0; i < strlen(str); i++)
-        DrawCharacter(screen, str[i], x + i * FONT_WIDTH, y, color, bgcolor);
+    int _x = x, _y = y, width = ScreenWidth(screen);
+    if (x < 0 || x >= width || y < 0 || y >= 240) return y;
+
+    int i = 0, len;
+    while(str[i])
+    {
+        len = 0;
+        while(IsCharPartOfWord(str[i+len])) len++;
+        // Get length of word
+
+        if ((len*FONT_WIDTH) > width)
+        {
+            len = (width/FONT_WIDTH)-1;
+        }
+        else if ((_x + (len*FONT_WIDTH)) > width)
+        {
+            _x = x;
+            _y+= FONT_HEIGHT;
+        }
+
+        if (_y >= 240)
+            break;
+
+        for (int j = 0; j < len; j++)
+        {
+            DrawCharacter(screen, str[i+j], _x, _y, color, bgcolor);
+            _x+= FONT_WIDTH;
+        }
+
+        if (str[i+len] == '\n')
+        {
+            _x = x;
+            _y+= FONT_HEIGHT;
+        }
+        else if (str[i+len] == '\r')
+        {
+            _x = x;
+        }
+        else if (isprint(str[i+len]))
+        {
+            DrawCharacter(screen, str[i+len], _x, _y, color, bgcolor);
+            _x+= FONT_WIDTH;
+        }
+
+        i+= len+1;
+    }
+
+    return _y;
 }
 
 void DrawStringF(int x, int y, bool use_top, const char *format, ...)
@@ -73,8 +119,7 @@ void DrawStringF(int x, int y, bool use_top, const char *format, ...)
     vsnprintf(str, 512, format, va);
     va_end(va);
 
-    for (char* text = strtok(str, "\n"); text != NULL; text = strtok(NULL, "\n"), y += 10)
-        DrawString((use_top) ? TOP_SCREEN : BOT_SCREEN, text, x, y, STD_COLOR_FONT, STD_COLOR_BG);
+    DrawString((use_top) ? TOP_SCREEN : BOT_SCREEN, str, x, y, STD_COLOR_FONT, STD_COLOR_BG);
 }
 
 void DrawStringFC(int x, int y, bool use_top, u32 color, const char *format, ...)
@@ -86,8 +131,7 @@ void DrawStringFC(int x, int y, bool use_top, u32 color, const char *format, ...
     vsnprintf(str, 512, format, va);
     va_end(va);
 
-    for (char* text = strtok(str, "\n"); text != NULL; text = strtok(NULL, "\n"), y += 10)
-        DrawString((use_top) ? TOP_SCREEN : BOT_SCREEN, text, x, y, color, STD_COLOR_BG);
+    DrawString((use_top) ? TOP_SCREEN : BOT_SCREEN, str, x, y, color, STD_COLOR_BG);
 }
 
 void Screenshot(const char* path)
@@ -153,9 +197,10 @@ void DebugSet(const char **strs)
     
     int pos_y = DBG_START_Y;
     u32* col = debugcol + (DBG_N_CHARS_Y - 1);
+
     for (char* str = debugstr + (DBG_N_CHARS_X * (DBG_N_CHARS_Y - 1)); str >= debugstr; str -= DBG_N_CHARS_X, col--) {
         if (*str != '\0') {
-            DrawString(TOP_SCREEN, str, DBG_START_X, pos_y, *col, DBG_COLOR_BG);
+            pos_y =  DrawString(TOP_SCREEN, str, DBG_START_X, pos_y, *col, DBG_COLOR_BG);
             pos_y += DBG_STEP_Y;
         }
     }

@@ -80,6 +80,27 @@ u32 UnmountSd()
     return pad_state;
 }
 
+void DisplayOptionInfo(MenuEntry *entry)
+{
+    if (entry->info == NULL) return;
+
+    u8 *fb_backup_loc = (u8*)(0x21100000);
+    const u32 fb_backup_len = (320*240*3);
+    memcpy(fb_backup_loc, BOT_SCREEN, fb_backup_len);
+
+    ClearScreenFull(false, true);
+
+    DrawStringFC(0, 10, false, COLOR_GREEN, "%s:", entry->name);
+    DrawStringF(0, 20, false, entry->info);
+    DrawStringF(0, 180, false, "For more information, please read\ngithub.com/d0k3/Decrypt9WIP/tree/master/README.md");
+    DrawStringF(0, 220, false, "Release Y to continue.");
+    while (CheckButton(BUTTON_Y));
+
+    memcpy(BOT_SCREEN, fb_backup_loc, fb_backup_len);
+
+    return;
+}
+
 void DrawMenu(MenuInfo* currMenu, u32 index, bool fullDraw, bool subMenu)
 {
     u32 emunand_state = CheckEmuNand();
@@ -288,6 +309,9 @@ u32 ProcessMenu(MenuInfo* info, u32 n_entries_main)
         } else if (pad_state & BUTTON_X) {
             (pad_state & (BUTTON_LEFT | BUTTON_RIGHT)) ?
                 BatchScreenshot(info, pad_state & BUTTON_RIGHT) : Screenshot(NULL);
+        } else if (pad_state & BUTTON_Y) {
+            DisplayOptionInfo(currMenu->entries + index);
+            full_draw = false;
         } else {
             full_draw = false;
         }

@@ -1,4 +1,5 @@
 #include "common.h"
+#include "descriptions.h"
 #include "draw.h"
 #include "fs.h"
 #include "hid.h"
@@ -15,67 +16,6 @@
 
 #define SUBMENU_START 1
 
-MenuInfo menu[] =
-{
-    {
-        #ifndef VERSION_NAME
-        "Hourglass9 Main Menu", 5,
-        #else
-        VERSION_NAME, 5,
-        #endif
-        {
-            { "SysNAND Backup/Restore...",    NULL,                   SUBMENU_START + 0 },
-            { "EmuNAND Backup/Restore...",    NULL,                   SUBMENU_START + 1 },
-            { "Gamecart Dumper...",           NULL,                   SUBMENU_START + 2 },
-            { "Miscellaneous...",             NULL,                   SUBMENU_START + 3 },
-            { "Validate NAND Dump",           &ValidateNandDump,      0 }
-        }
-    },
-    {
-        "SysNAND Backup/Restore Options", 4, // ID 0
-        {
-            { "SysNAND Backup",               &DumpNand,              NB_MINSIZE },
-            { "SysNAND Restore (keep a9lh)",  &RestoreNand,           N_NANDWRITE | NR_KEEPA9LH },
-            { "Health&Safety Dump",           &DumpHealthAndSafety,   0 },
-            { "Health&Safety Inject",         &InjectHealthAndSafety, N_NANDWRITE }
-        }
-    },
-    {
-        "EmuNAND Backup/Restore Options", 4, // ID 1
-        {
-            { "EmuNAND Backup",               &DumpNand,              N_EMUNAND | NB_MINSIZE },
-            { "EmuNAND Restore",              &RestoreNand,           N_NANDWRITE | N_EMUNAND | N_FORCEEMU },
-            { "Health&Safety Dump",           &DumpHealthAndSafety,   N_EMUNAND },
-            { "Health&Safety Inject",         &InjectHealthAndSafety, N_NANDWRITE | N_EMUNAND }
-        }
-    },
-    {
-        "Gamecart Dumper Options", 6, // ID 2
-        {
-            { "Dump Cart (full)",             &DumpGameCart,          0 },
-            { "Dump Cart (trim)",             &DumpGameCart,          CD_TRIM },
-            { "Dump & Decrypt Cart (full)",   &DumpGameCart,          CD_DECRYPT },
-            { "Dump & Decrypt Cart (trim)",   &DumpGameCart,          CD_DECRYPT | CD_TRIM },
-            { "Dump Cart to CIA",             &DumpGameCart,          CD_DECRYPT | CD_MAKECIA },
-            { "Dump Private Header",          &DumpPrivateHeader,     0 }
-        }
-    },
-    {
-        "Miscellaneous Options", 6, // ID 3
-        {
-            { "SysNAND title to CIA",         &ConvertSdToCia,        GC_CIA_DEEP },
-            { "EmuNAND title to CIA",         &ConvertSdToCia,        GC_CIA_DEEP | N_EMUNAND },
-            { "GBA VC Save Dump",             &DumpGbaVcSave,         0 },
-            { "GBA VC Save Inject",           &InjectGbaVcSave,       N_NANDWRITE },
-            { "NCCH Padgen",                  &NcchPadgen,            0 },
-            { "System Info",                  &SystemInfo,            0 }
-        }
-    },
-    {
-        NULL, 0, { { 0 } } // empty menu to signal end
-    }
-};
-
 
 void Reboot()
 {
@@ -91,7 +31,7 @@ void PowerOff()
 }
 
 
-u32 InitializeH9()
+u32 InitializeH9(MenuInfo* menu)
 {
     u32 errorlevel = 0; // 0 -> none, 1 -> autopause, 2 -> critical
     
@@ -161,9 +101,70 @@ u32 InitializeH9()
 
 int main()
 {
+    MenuInfo menu[] =
+    {
+        {
+            #ifndef VERSION_NAME
+            "Hourglass9 Main Menu", 5,
+            #else
+            VERSION_NAME, 5,
+            #endif
+            {
+                { "SysNAND Backup/Restore...",    NULL,                    NULL,                   SUBMENU_START + 0 },
+                { "EmuNAND Backup/Restore...",    NULL,                    NULL,                   SUBMENU_START + 1 },
+                { "Gamecart Dumper...",           NULL,                    NULL,                   SUBMENU_START + 2 },
+                { "Miscellaneous...",             NULL,                    NULL,                   SUBMENU_START + 3 },
+                { "Validate NAND Dump",           ValidateNandDumpDesc,    &ValidateNandDump,      0 }
+            }
+        },
+        {
+            "SysNAND Backup/Restore Options", 4, // ID 0
+            {
+                { "SysNAND Backup",               DumpNandMinDesc,         &DumpNand,              NB_MINSIZE },
+                { "SysNAND Restore (keep a9lh)",  RestoreNandKeepHaxDesc,  &RestoreNand,           N_NANDWRITE | NR_KEEPA9LH },
+                { "Health&Safety Dump",           HealthAndSafetyDesc,     &DumpHealthAndSafety,   0 },
+                { "Health&Safety Inject",         HealthAndSafetyDesc,     &InjectHealthAndSafety, N_NANDWRITE }
+            }
+        },
+        {
+            "EmuNAND Backup/Restore Options", 4, // ID 1
+            {
+                { "EmuNAND Backup",               DumpNandMinDesc,         &DumpNand,              N_EMUNAND | NB_MINSIZE },
+                { "EmuNAND Restore",              RestoreNandKeepHaxDesc,  &RestoreNand,           N_NANDWRITE | N_EMUNAND | N_FORCEEMU },
+                { "Health&Safety Dump",           HealthAndSafetyDesc,     &DumpHealthAndSafety,   N_EMUNAND },
+                { "Health&Safety Inject",         HealthAndSafetyDesc,     &InjectHealthAndSafety, N_NANDWRITE | N_EMUNAND }
+            }
+        },
+        {
+            "Gamecart Dumper Options", 6, // ID 2
+            {
+                { "Dump Cart (full)",             DumpGameCartFullDesc,    &DumpGameCart,          0 },
+                { "Dump Cart (trim)",             DumpGameCartTrimDesc,    &DumpGameCart,          CD_TRIM },
+                { "Dump & Decrypt Cart (full)",   DumpGameCartDecFullDesc, &DumpGameCart,          CD_DECRYPT },
+                { "Dump & Decrypt Cart (trim)",   DumpGameCartDecTrimDesc, &DumpGameCart,          CD_DECRYPT | CD_TRIM },
+                { "Dump Cart to CIA",             DumpGameCartCIADesc,     &DumpGameCart,          CD_DECRYPT | CD_MAKECIA },
+                { "Dump Private Header",          DumpPrivateHeaderDesc,   &DumpPrivateHeader,     0 }
+            }
+        },
+        {
+            "Miscellaneous Options", 6, // ID 3
+            {
+                { "SysNAND title to CIA",         CiaBuilderDesc,          &ConvertSdToCia,        GC_CIA_DEEP },
+                { "EmuNAND title to CIA",         CiaBuilderDesc,          &ConvertSdToCia,        GC_CIA_DEEP | N_EMUNAND },
+                { "GBA VC Save Dump",             GbaVcSaveDesc,           &DumpGbaVcSave,         0 },
+                { "GBA VC Save Inject",           GbaVcSaveDesc,           &InjectGbaVcSave,       N_NANDWRITE },
+                { "NCCH Padgen",                  NcchPadgenDesc,          &NcchPadgen,            0 },
+                { "System Info",                  SystemInfoDesc,          &SystemInfo,            0 }
+            }
+        },
+        {
+            NULL, 0, { { 0 } } // empty menu to signal end
+        }
+    };
+
     u32 menu_exit = MENU_EXIT_REBOOT;
     
-    if (InitializeH9() <= 1) {
+    if (InitializeH9(menu) <= 1) {
         menu_exit = ProcessMenu(menu, SUBMENU_START);
     }
     DeinitFS();
