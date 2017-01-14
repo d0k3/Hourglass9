@@ -399,6 +399,21 @@ u32 GetRegion(void)
     return (u32) secureinfo[0x100];
 }
 
+u32 GetSerial(char* serial)
+{
+    PartitionInfo* p_info = GetPartitionInfo(P_CTRNAND);
+    u8 secureinfo[0x200];
+    u32 offset;
+    u32 size;
+    
+    if ((SeekFileInNand(&offset, &size, "RW         SYS        SECURE~?   ", p_info) != 0) ||
+        (DecryptNandToMem(secureinfo, offset, size, p_info) != 0))
+        return 1;
+    
+    snprintf(serial, 16, "%.15s", (char*) (secureinfo + 0x102));
+    return 0;
+}
+
 u32 GetSystemId0(u8* id0)
 {
     PartitionInfo* p_info = GetPartitionInfo(P_CTRNAND);
@@ -475,6 +490,16 @@ u32 FixNandCmac(u32 param) {
     }
     
     return 0;
+}
+
+u32 ValidateSeed(u8* seed, u64 titleId, u8* hash) {
+    u8 valdata[16 + 8];
+    u8 sha256sum[32];
+    // validate seed
+    memcpy(valdata, seed, 16);
+    memcpy(valdata + 16, &titleId, 8);
+    sha_quick(sha256sum, valdata, 16 + 8, SHA256_MODE);
+    return (memcmp(hash, sha256sum, 4) == 0) ? 0 : 1;
 }
 
 u32 CheckNandFile(u32 param) {
@@ -841,7 +866,7 @@ u32 DumpCitraConfig(u32 param)
     return 1; // failed if arriving here
 }
 
-u32 FindSeedInSeedSave(u8* seed, u64 titleId)
+u32 FindSeedInSeedSave(u8* seed, u64 titleId, u8* hash)
 {
     // there are two offsets where seeds can be found - 0x07000 & 0x5C000
     static const u32 seed_offset[2] = {0x7000, 0x5C000};
@@ -850,6 +875,7 @@ u32 FindSeedInSeedSave(u8* seed, u64 titleId)
     PartitionInfo* p_info = GetPartitionInfo(f_info->partition_id);
     u8* buffer = BUFFER_ADDRESS;
     
+    u32 p_active = 0;
     u32 offset;
     u32 size;
     
@@ -862,15 +888,18 @@ u32 FindSeedInSeedSave(u8* seed, u64 titleId)
     }
     if (DecryptNandToMem(buffer, offset, size, p_info) != 0)
         return 1;
+    p_active = (getle32(buffer + 0x168)) ? 1 : 0;
     
     // search and extract seeds
     for ( int n = 0; n < 2; n++ ) {
-        u8* seed_data = buffer + seed_offset[n];
+        u8* seed_data = buffer + seed_offset[(n + p_active) % 2];
         for ( size_t i = 0; i < 2000; i++ ) {
             // 2000 seed entries max, splitted into title id and seed area
             u8* ltitleId = seed_data + (i*8);
             u8* lseed = seed_data + (2000*8) + (i*16);
             if (titleId != getle64(ltitleId))
+                continue;
+            if (hash && (ValidateSeed(lseed, titleId, hash) != 0))
                 continue;
             memcpy(seed, lseed, 16);
             return 0;
@@ -893,6 +922,7 @@ u32 UpdateSeedDb(u32 param)
     SeedInfo *seedinfo = (SeedInfo*) 0x20400000;
     
     u32 nNewSeeds = 0;
+    u32 p_active = 0;
     u32 offset;
     u32 size;
     
@@ -905,6 +935,7 @@ u32 UpdateSeedDb(u32 param)
     }
     if (DecryptNandToMem(buffer, offset, size, p_info) != 0)
         return 1;
+    p_active = (getle32(buffer + 0x168)) ? 1 : 0;
     
     // load / create seeddb.bin
     u32 size_seeddb;
@@ -922,7 +953,7 @@ u32 UpdateSeedDb(u32 param)
     
     // search and extract seeds
     for ( int n = 0; n < 2; n++ ) {
-        u8* seed_data = buffer + seed_offset[n];
+        u8* seed_data = buffer + seed_offset[(n + p_active) % 2];
         for ( size_t i = 0; i < 2000; i++ ) {
             static const u8 zeroes[16] = { 0x00 };
             // magic number is the reversed first 4 byte of a title id

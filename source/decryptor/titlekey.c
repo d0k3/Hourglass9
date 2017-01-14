@@ -23,7 +23,7 @@ u32 CryptTitlekey(TitleKeyEntry* entry, bool encrypt)
 
 u32 CryptTitlekeysFile(u32 param)
 {
-    TitleKeysInfo *info = (TitleKeysInfo*)0x20316000;
+    TitleKeysInfo *info = (TitleKeysInfo*) BUFFER_ADDRESS;
     char filename[64];
 
     if (InputFileNameSelector(filename, (param & TK_ENCRYPTED) ? "decTitleKeys.bin" : "encTitleKeys.bin",
@@ -36,26 +36,28 @@ u32 CryptTitlekeysFile(u32 param)
         FileClose();
         return 1;
     }
-    if (!info->n_entries || info->n_entries > MAX_ENTRIES) {
+    if (!info->n_entries || info->n_entries > 16384) {
         Debug("Too many/few entries specified: %i", info->n_entries);
         FileClose();
         return 1;
     }
     Debug("Number of entries: %i", info->n_entries);
-    if (!DebugFileRead(info->entries, info->n_entries * sizeof(TitleKeyEntry), 16)) {
+    u32 file_size = info->n_entries * sizeof(TitleKeyEntry) + 16;
+    if (!DebugFileRead(info, file_size, 0)) {
         FileClose();
         return 1;
     }
     FileClose();
 
     Debug("%scrypting Title Keys...", (param & TK_ENCRYPTED) ? "En" : "De");
-    for (u32 i = 0; i < info->n_entries; i++)
+    for (u32 i = 0; i < info->n_entries; i++) {
+        ShowProgress(i, info->n_entries);
         CryptTitlekey(&(info->entries[i]), (param & TK_ENCRYPTED));
+    }
 
     if (OutputFileNameSelector(filename, (param & TK_ENCRYPTED) ? "encTitleKeys.bin" : "decTitleKeys.bin", NULL) != 0)
         return 1;
-    u32 out_size = info->n_entries * sizeof(TitleKeyEntry) + 16;
-    if (FileDumpData(filename, info, out_size) != out_size) {
+    if (FileDumpData(filename, info, file_size) != file_size) {
         Debug("Error writing Titlekeys file");
         return 1;
     }
@@ -89,7 +91,8 @@ u32 DumpTicketsTitlekeys(u32 param)
         if (DecryptNandToMem(buffer, offset + t_offset, read_bytes, ctrnand_info) != 0)
             return 1;
         for (u32 i = 0x140; i < read_bytes - 0x210; i++) {
-            if ((memcmp(buffer + i, (u8*) "Root-CA00000003-XS0000000c", 26) == 0) &&
+            if (((memcmp(buffer + i, (u8*) "Root-CA00000003-XS0000000c", 26) == 0) ||  // retail tickets
+                (memcmp(buffer + i, (u8*) "Root-CA00000004-XS00000009", 26) == 0)) && // devkit tickets
                 (memcmp(buffer + i - 0x140, sig_type, 4) == 0)) {
                 u32 exid;
                 u32 consoleId = getle32(buffer + i + 0x98);

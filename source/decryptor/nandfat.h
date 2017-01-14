@@ -41,10 +41,12 @@ u32 SeekTitleInNandDb(u32 tid_high, u32 tid_low, u32* tmd_id);
 u32 DebugSeekTitleInNand(u32* offset_tmd, u32* size_tmd, u32* offset_app, u32* size_app, TitleListInfo* title_info, u32 max_cnt);
 u32 FixCmac(u8* cmac, u8* data, u32 size, u32 keyslot);
 u32 GetRegion(void);
+u32 GetSerial(char* serial);
 u32 GetSystemId0(u8* id0);
+u32 ValidateSeed(u8* seed, u64 titleId, u8* hash);
 u32 DumpNcchFirm(u32 firm_idx, bool version, bool a9l_decrypt);
 u32 CheckNandFile(u32 param);
-u32 FindSeedInSeedSave(u8* seed, u64 titleId);
+u32 FindSeedInSeedSave(u8* seed, u64 titleId, u8* hash);
 
 // --> FEATURE FUNCTIONS <--
 u32 DumpNandFile(u32 param);

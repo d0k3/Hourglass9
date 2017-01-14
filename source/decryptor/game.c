@@ -135,7 +135,7 @@ u32 SdFolderSelector(char* path, u8* keyY, bool title_select)
             if ((index < n_dirs - 1) && (strchrcount(dirptr[index+1], '/') > cur_lvl))
                 index++; // this only works because of the sorting of the dir list
         } else if ((pad_state & BUTTON_LEFT) && (cur_lvl > 4)) { // down one level
-            while ((index > 0) && (cur_lvl == strchrcount(dirptr[index], '/')))
+            while ((index > 0) && (cur_lvl <= strchrcount(dirptr[index], '/')))
                 index--;
         } else if (pad_state & BUTTON_A) {
             DebugColor(COLOR_ASK, "%s", path + 13 + 33 + 33);
@@ -335,7 +335,7 @@ u32 CryptNcch(const char* filename, u32 offset, u32 size, u64 seedId, u8* encryp
     if (usesSeedCrypto) {
         u8 seed[16];
         u32 found = 0;
-        if (FindSeedInSeedSave(seed, seedId) == 0) { // try loading from NAND
+        if (FindSeedInSeedSave(seed, seedId, ncch->hash_seed) == 0) { // try loading from NAND
             Debug("Loading seed from NAND: ok");
             found = 1;
         } else if (FileOpen("seeddb.bin")) { // try loading from seeddb.bin
@@ -353,10 +353,17 @@ u32 CryptNcch(const char* filename, u32 offset, u32 size, u64 seedId, u8* encryp
             FileClose();
         }
         if (found) {
+            // validate seed
+            if (ValidateSeed(seed, seedId, ncch->hash_seed) != 0) {
+                Debug("Seed found, but validation failed!");
+                Debug("Try fixing your seeddb.bin");
+                return 1;
+            }
+            // set seed key
             u8 keydata[32];
+            u8 sha256sum[32];
             memcpy(keydata, ncch->signature, 16);
             memcpy(keydata + 16, seed, 16);
-            u8 sha256sum[32];
             sha_quick(sha256sum, keydata, 32, SHA256_MODE);
             memcpy(seedKeyY, sha256sum, 16);
         } else {
@@ -1296,6 +1303,7 @@ u32 CryptSdFiles(u32 param)
             } else {
                 Debug("Failed!");
                 n_failed++;
+                break;
             }
         }
     }
@@ -1351,6 +1359,7 @@ u32 DecryptSdFilesDirect(u32 param)
             if (FileCopyTo(dstpath, BUFFER_ADDRESS, BUFFER_MAX_SIZE) != fsize) {
                 Debug("Could not copy: %s", srcpath + bplen);
                 n_failed++;
+                break;
             }
             FileClose();
         } else {
@@ -1363,6 +1372,7 @@ u32 DecryptSdFilesDirect(u32 param)
         } else {
             Debug("Failed!");
             n_failed++;
+            break;
         }
     }
     
@@ -1463,7 +1473,8 @@ u32 ConvertSdToCia(u32 param)
                 if (DecryptNandToMem(buffer, t_offset + offset, read_bytes, ctrnand_info) != 0)
                     continue;
                 for (u32 i = 0x140; (i < read_bytes - 0x210) && !tik_legit; i++) {
-                    if ((memcmp(buffer + i, (u8*) "Root-CA00000003-XS0000000c", 26) == 0) &&
+                    if (((memcmp(buffer + i, (u8*) "Root-CA00000003-XS0000000c", 26) == 0) ||
+                        (memcmp(buffer + i, (u8*) "Root-CA00000004-XS00000009", 26) == 0)) &&
                         (memcmp(buffer + i - 0x140, sig_type, 4) == 0)) {
                         // u32 consoleId = getle32(buffer + i + 0x98);
                         u8* titleId = buffer + i + 0x9C;
@@ -1474,6 +1485,8 @@ u32 ConvertSdToCia(u32 param)
                         }
                     }
                 }
+                if (DebugCheckCancel())
+                    return 1;
             }
         }
         
@@ -1519,7 +1532,7 @@ u32 ConvertSdToCia(u32 param)
         Debug("Writing CIA stub (%lu byte)...", stub_size);
         if (FileDumpData(ciapath, stub, stub_size) != stub_size) {
             Debug("Failed writing the CIA stub");
-            continue;
+            break;
         }
         
         // inject content file(s)
@@ -1558,13 +1571,13 @@ u32 ConvertSdToCia(u32 param)
             }
         }
         if (c < content_count)
-            continue; // error, skip the remaing steps
+            break; // error, skip the remaing steps
         
         // finalize the CIA file
         Debug("Finalizing CIA file...");
         if (FinalizeCiaFile(ciapath, !(param & GC_CIA_DEEP)) != 0) {
             Debug("Failed!");
-            continue;
+            break;
         }
         
         next_offset = stub_size;
@@ -1580,12 +1593,12 @@ u32 ConvertSdToCia(u32 param)
                 Debug("Reencrypting content id %08lX...", id);
                 if (CryptSdToSd(ciapath, offset, size, &info_tk, false) != 0) {
                     Debug("Failed encrypting content");
-                    continue;
+                    break;
                 }
             }
         }
         if (c < content_count)
-            continue; // error, skip the remaing steps
+            break; // error, leave loop
         
         n_failed--;
         n_processed++;
@@ -2148,6 +2161,11 @@ u32 DumpTwlGameCart(u32 param)
     Debug("Cartridge data size: %lluMB", cart_size / 0x100000);
     Debug("Cartridge used size: %lluMB", data_size / 0x100000);
     Debug("Cartridge dump size: %lluMB", dump_size / 0x100000);
+    
+    if (data_size > cart_size) {
+        Debug("Used size exceeds cartridge size");
+        return 1; // should never happen
+    }
 
     if (!NTR_Secure_Init (buff, Cart_GetID(), 0)) {
         Debug("Error reading secure data");
@@ -2287,6 +2305,70 @@ u32 DumpPrivateHeader(u32 param)
         Debug("Could not create output file on SD");
         return 1;
     }
+
+    return 0;
+}
+
+u32 ProcessCartSave(u32 param)
+{
+    u8* buffer = BUFFER_ADDRESS;
+    char filename[64];
+    u32 saveSize = 0;
+    int saveType = 0;
+    u32 cartId;
+    
+    // check if cartridge inserted
+    if (REG_CARDCONF2 & 0x1) {
+        Debug("Cartridge was not detected");
+        return 1;
+    }
+
+    // initialize cartridge
+    Cart_Init();
+    cartId = Cart_GetID();
+    Debug("Cartridge ID: %08X", Cart_GetID());
+    Debug("Cartridge type: %s", (cartId & 0x10000000) ? "CTR" : "NTR/TWL");
+
+    // check options vs. cartridge type
+    if (cartId & 0x10000000) {
+        Debug("Not possible for CTR carts");
+        return 1;
+    }
+    
+    // preparations
+    saveType = cardEepromGetType();
+    saveSize = cardEepromGetSize();
+    Debug("eeprom type: %i", saveType);
+    Debug("eeprom size: %u kB", saveSize / 1024);
+    if ((saveType <= 0) || (saveSize > BUFFER_MAX_SIZE)) {
+        Debug("Invalid eeprom chip detected or not available");
+        return 1;
+    }
+    Debug("");
+    
+    if (param & CD_FLASH) {
+        // user file select, load & write
+        if (InputFileNameSelector(filename, "ndscart.sav", NULL, NULL, 0, saveSize, true) != 0)
+            return 1;
+        if (FileGetData(filename, buffer, saveSize, 0) != saveSize) {
+            Debug("Error reading file");
+            return 1;
+        }
+        Debug("Writing savegame...");
+        // full erase for eeprom type 3
+        if (saveType == 3) cardEepromChipErase();
+        cardWriteEeprom(0, buffer, saveSize, saveType);
+    } else {
+        Debug("Reading savegame...");
+        cardReadEeprom(0, buffer, saveSize, saveType);
+        if (OutputFileNameSelector(filename, "ndscart.sav", NULL) != 0)
+            return 1;
+        if (FileDumpData(filename, buffer, saveSize) != saveSize) {
+            Debug("Error writing file");
+            return 1;
+        }
+    }
+    
     
     return 0;
 }
