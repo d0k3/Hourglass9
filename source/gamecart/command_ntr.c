@@ -49,12 +49,12 @@ void NTR_CmdReadHeader (u8* buffer)
     {
       //this is magic of wood goblins
       for(size_t ii=0;ii<8;++ii)
-        cardParamCommand(NTRCARD_CMD_HEADER_READ,ii*0x200,NTRCARD_ACTIVATE|NTRCARD_nRESET|NTRCARD_CLK_SLOW|NTRCARD_BLK_SIZE(1)|NTRCARD_DELAY1(0x1FFF)|NTRCARD_DELAY2(0x3F),(u32*)(buffer+ii*0x200),0x200/sizeof(u32));
+        cardParamCommand(NTRCARD_CMD_HEADER_READ,ii*0x200,NTRCARD_ACTIVATE|NTRCARD_nRESET|NTRCARD_CLK_SLOW|NTRCARD_BLK_SIZE(1)|NTRCARD_DELAY1(0x1FFF)|NTRCARD_DELAY2(0x3F),(u32*)(void*)(buffer+ii*0x200),0x200/sizeof(u32));
     }
     else
     {
       //0xac3f1fff
-      cardParamCommand(NTRCARD_CMD_HEADER_READ,0,NTRCARD_ACTIVATE|NTRCARD_nRESET|NTRCARD_CLK_SLOW|NTRCARD_BLK_SIZE(4)|NTRCARD_DELAY1(0x1FFF)|NTRCARD_DELAY2(0x3F),(u32*)buffer,0x1000/sizeof(u32));
+      cardParamCommand(NTRCARD_CMD_HEADER_READ,0,NTRCARD_ACTIVATE|NTRCARD_nRESET|NTRCARD_CLK_SLOW|NTRCARD_BLK_SIZE(4)|NTRCARD_DELAY1(0x1FFF)|NTRCARD_DELAY2(0x3F),(u32*)(void*)buffer,0x1000/sizeof(u32));
     }
     //cardReadHeader (buffer);
 }

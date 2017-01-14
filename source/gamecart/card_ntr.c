@@ -24,18 +24,14 @@
 
 
 ---------------------------------------------------------------------------------*/
-#include "nds/card.h"
-#include "nds/dma.h"
-#include "nds/memory.h"
-#include "nds/bios.h"
-
+#include "ndscard.h"
 
 //---------------------------------------------------------------------------------
 void cardWriteCommand(const u8 *command) {
 //---------------------------------------------------------------------------------
 	int index;
 
-	REG_AUXSPICNTH = CARD_CR1_ENABLE | CARD_CR1_IRQ;
+	REG_AUXSPICNT = CARD_CR1_ENABLE | CARD_CR1_IRQ;
 
 	for (index = 0; index < 8; index++) {
 		CARD_COMMAND[7-index] = command[index];
@@ -89,7 +85,7 @@ u32 cardWriteAndRead(const u8 *command, u32 flags) {
 void cardParamCommand (u8 command, u32 parameter, u32 flags, u32 *destination, u32 length) {
 //---------------------------------------------------------------------------------
 	u8 cmdData[8];
-	
+
 	cmdData[7] = (u8) command;
 	cmdData[6] = (u8) (parameter >> 24);
 	cmdData[5] = (u8) (parameter >> 16);
@@ -106,15 +102,15 @@ void cardParamCommand (u8 command, u32 parameter, u32 flags, u32 *destination, u
 void cardReadHeader(u8 *header) {
 //---------------------------------------------------------------------------------
 	REG_ROMCTRL=0;
-	REG_AUXSPICNTH=0;
+	REG_AUXSPICNT=0;
 	swiDelay(167550);
-	REG_AUXSPICNTH=CARD_CR1_ENABLE|CARD_CR1_IRQ;
+	REG_AUXSPICNT=CARD_CR1_ENABLE|CARD_CR1_IRQ;
 	REG_ROMCTRL=CARD_nRESET|CARD_SEC_SEED;
 	while(REG_ROMCTRL&CARD_BUSY) ;
 	cardReset();
 	while(REG_ROMCTRL&CARD_BUSY) ;
-	
-	cardParamCommand(CARD_CMD_HEADER_READ,0,CARD_ACTIVATE|CARD_nRESET|CARD_CLK_SLOW|CARD_BLK_SIZE(1)|CARD_DELAY1(0x1FFF)|CARD_DELAY2(0x3F),(u32*)header,512/4);
+
+	cardParamCommand(CARD_CMD_HEADER_READ,0,CARD_ACTIVATE|CARD_nRESET|CARD_CLK_SLOW|CARD_BLK_SIZE(1)|CARD_DELAY1(0x1FFF)|CARD_DELAY2(0x3F),(u32*)(void*)header,512/4);
 }
 
 
@@ -144,7 +140,3 @@ void cardReset() {
 		}
 	} while(REG_ROMCTRL&CARD_BUSY);
 }
-
-
-
-

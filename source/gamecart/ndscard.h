@@ -8,7 +8,7 @@
 
 #pragma once
 #include <inttypes.h>
-#include "../delay.h"
+#include "delay.h"
 
 #define u8 uint8_t
 #define u16 uint16_t
@@ -20,10 +20,29 @@
 #define vu32 volatile u32
 #define vu64 volatile u64
 
-#define REG_AUXSPICNTH		(*(vu16*)0x10164000)
 #define REG_ROMCTRL			(*(vu32*)0x10164004)
+#define REG_AUXSPICNT		(*(vu16*)0x10164000)
+#define REG_AUXSPICNTH		(*(vu16*)0x10164001)
+#define REG_AUXSPIDATA		(*(vu16*)0x10164002)
+
 #define CARD_COMMAND		((vu8*)0x10164008)
 #define CARD_DATA_RD		(*(vu32*)0x1016401C)
+
+#define CARD_CR1_ENABLE  0x8000u
+#define CARD_CR1_IRQ     0x4000u
+
+// SPI EEPROM COMMANDS
+#define SPI_EEPROM_WRSR   0x01
+#define SPI_EEPROM_PP     0x02	// Page Program
+#define SPI_EEPROM_READ   0x03
+#define SPI_EEPROM_WRDI   0x04  // Write disable
+#define SPI_EEPROM_RDSR   0x05  // Read status register
+#define SPI_EEPROM_WREN   0x06  // Write enable
+#define SPI_EEPROM_PW     0x0a	// Page Write
+#define SPI_EEPROM_FAST   0x0b	// Fast Read
+#define SPI_EEPROM_RDID   0x9f
+#define SPI_EEPROM_RDP    0xab	// Release from deep power down
+#define SPI_EEPROM_DPD    0xb9  // Deep power down
 
 #define CARD_ACTIVATE     (1u<<31)           // when writing, get the ball rolling
 #define CARD_WR           (1u<<30)           // Card write enable
@@ -57,9 +76,14 @@
 #define CARD_CMD_DATA_READ      0xB7u
 #define CARD_CMD_DATA_CHIPID    0xB8u
 
-#define CARD_CR1_ENABLE  0x8000u
-#define CARD_CR1_IRQ     0x4000u
+//REG_AUXSPICNT
+#define CARD_ENABLE			(1<<15)
+#define CARD_SPI_ENABLE		(1<<13)
+#define CARD_SPI_BUSY		(1<<7)
+#define CARD_SPI_HOLD		(1<<6)
 
+#define CARD_SPICNTH_ENABLE  (1<<7)  // in byte 1, i.e. 0x8000
+#define CARD_SPICNTH_IRQ     (1<<6)  // in byte 1, i.e. 0x4000
 
 #define swiDelay(n) ioDelay(n)
 

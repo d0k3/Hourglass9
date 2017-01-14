@@ -165,7 +165,7 @@ void NTR_CreateEncryptedCommand (u8 aCommand, u32* pCardHash, u8* aCmdData, IKEY
     aCmdData[1]=(u8)(pKey1->kkkkk>>8);
     aCmdData[0]=(u8)pKey1->kkkkk;
 
-    NTR_CryptUp(pCardHash, (u32*)aCmdData);
+    NTR_CryptUp(pCardHash, (u32*)(void*)aCmdData);
 
     pKey1->kkkkk+=1;
 }
@@ -211,20 +211,20 @@ bool NTR_Secure_Init (u8* header, u32 CartID, int iCardDevice)
 	u32 iGameCode;
     u32 iCardHash[0x412] = {0};
     u32 iKeyCode[3] = {0};
-    u32* secureArea=(u32*)(header + 0x4000);
+    u32* secureArea=(u32*)(void*)(header + 0x4000);
     u8 cmdData[8] __attribute__((aligned(32)));
     const u8 cardSeedBytes[]={0xE8,0x4D,0x5A,0xB1,0x17,0x8F,0x99,0xD5};
     IKEY1 iKey1 ={0};
     bool iCheapCard = (CartID & 0x80000000) != 0;
-    u32 cardControl13 = *((u32*)&header[0x60]);
-    u32 cardControlBF = *((u32*)&header[0x64]);
-	u16 readTimeout = *((u16*)&header[0x6E]); readTimeout*=8;
+    u32 cardControl13 = *((u32*)(void*)&header[0x60]);
+    u32 cardControlBF = *((u32*)(void*)&header[0x64]);
+	u16 readTimeout = *((u16*)(void*)&header[0x6E]); readTimeout*=8;
 	u8 deviceType = header[0x13];
 	int nCardHash = sizeof (iCardHash) / sizeof (iCardHash[0]);
     u32 flagsKey1=NTRCARD_ACTIVATE|NTRCARD_nRESET|(cardControl13&(NTRCARD_WR|NTRCARD_CLK_SLOW))|((cardControlBF&(NTRCARD_CLK_SLOW|NTRCARD_DELAY1(0x1FFF)))+((cardControlBF&NTRCARD_DELAY2(0x3F))>>16));
     u32 flagsSec=(cardControlBF&(NTRCARD_CLK_SLOW|NTRCARD_DELAY1(0x1FFF)|NTRCARD_DELAY2(0x3F)))|NTRCARD_ACTIVATE|NTRCARD_nRESET|NTRCARD_SEC_EN|NTRCARD_SEC_DAT;
 
-    iGameCode = *((u32*)&header[0x0C]);
+    iGameCode = *((u32*)(void*)&header[0x0C]);
     ReadDataFlags = cardControl13 & ~ NTRCARD_BLK_SIZE(7);
     NTR_InitKey (iGameCode, iCardHash, nCardHash, iKeyCode, iCardDevice?1:2, iCardDevice);
 

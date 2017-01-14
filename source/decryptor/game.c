@@ -5,6 +5,7 @@
 #include "gamecart/protocol.h"
 #include "gamecart/command_ctr.h"
 #include "gamecart/command_ntr.h"
+#include "gamecart/card_eeprom.h"
 #include "decryptor/aes.h"
 #include "decryptor/sha.h"
 #include "decryptor/decryptor.h"
