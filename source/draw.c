@@ -98,7 +98,7 @@ int DrawString(u8* screen, const char *str, int x, int y, int color, int bgcolor
         {
             _x = x;
         }
-        else if (isprint(str[i+len]))
+        else
         {
             DrawCharacter(screen, str[i+len], _x, _y, color, bgcolor);
             _x+= FONT_WIDTH;
