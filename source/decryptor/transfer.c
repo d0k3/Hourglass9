@@ -33,12 +33,6 @@ u32 NandTransfer(u32 param) {
     if (!(param & N_NANDWRITE))
         return 1;
     
-    // check free space
-    if (!DebugCheckFreeSpace(128 * 1024 * 1024)) {
-        Debug("You need at least 128MB free for this operation");
-        return 1;
-    }
-    
     // deeper check for a9lh
     if (!(param & N_EMUNAND) && !a9lh) {
         Debug("A9LH not detected, checking FIRM0...");
@@ -93,6 +87,12 @@ u32 NandTransfer(u32 param) {
         DebugColor(COLOR_ASK, "Failed, <A> to continue, <B> to stop");
         if (!(InputWait() & BUTTON_A))
             return 1;
+    }
+    
+    // check free space
+    if (!DebugCheckFreeSpace(128 * 1024 * 1024)) {
+        Debug("You need 128MB free to continue this operation");
+        return 1;
     }
     
     Debug("");

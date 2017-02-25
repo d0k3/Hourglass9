@@ -182,7 +182,7 @@ void NTR_DecryptSecureArea (u32 aGameCode, u32* pCardHash, int nCardHash, u32* p
 u32 NTR_GetIDSafe (u32 flags, const u8* command, u32 Delay)
 {
     u32 data = 0;
-    Delay = ((Delay & 0x3fff) * 1000) / 0x83;
+    Delay = 2* (((Delay & 0x3fff) * 1000) / 0x83);
     ioDelay (Delay);
     cardWriteCommand(command);
     REG_NTRCARDROMCNT = flags | NTRCARD_BLK_SIZE(7);
@@ -201,7 +201,7 @@ u32 NTR_GetIDSafe (u32 flags, const u8* command, u32 Delay)
 
 void NTR_CmdSecure (u32 flags, void* buffer, u32 length, u8* pcmd, u32 Delay)
 {
-    Delay = ((Delay & 0x3fff) * 1000) / 0x83;
+    Delay = 2 * (((Delay & 0x3fff) * 1000) / 0x83);
     ioDelay (Delay);
     cardPolledTransfer (flags, buffer, length, pcmd);
 }
@@ -311,7 +311,7 @@ bool NTR_Secure_Init (u8* header, u32 CartID, int iCardDevice)
     }
     else
     {
-        Debug("Invalid secure area (%08X %08X)", secureArea[0], secureArea[1]);
+        //Debug("Invalid secure area (%08X %08X)", secureArea[0], secureArea[1]);
         //dragon quest 5 has invalid secure area. really.
 		//return false;
     }

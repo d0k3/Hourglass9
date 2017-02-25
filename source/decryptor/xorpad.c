@@ -176,10 +176,11 @@ u32 NcchPadgen(u32 param)
     }
     
     for (u32 i = 0; i < info->n_entries; i++) {
-        PadInfo padInfo = {.setKeyY = 1, .size_mb = info->entries[i].size_mb, .mode = AES_CNT_CTRNAND_MODE};
+        PadInfo padInfo = {.setKeyY = 1, .size_mb = 0, .size_b = info->entries[i].size_b, .mode = AES_CNT_CTRNAND_MODE};
         memcpy(padInfo.ctr, info->entries[i].ctr, 16);
         memcpy(padInfo.filename, info->entries[i].filename, 112);
-        Debug ("%2i: %s (%iMB)", i, info->entries[i].filename, info->entries[i].size_mb);
+        if (!padInfo.size_b) padInfo.size_b = info->entries[i].size_mb * 1024 * 1024;
+        Debug ("%2i: %s (%iMB)", i, info->entries[i].filename, info->entries[i].size_b / (1024*1024));
         
         // workaround to still be able to process old ncchinfo.bin
         if ((info->entries[i].ncchFlag7 == 0x01) && info->entries[i].ncchFlag3)

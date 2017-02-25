@@ -16,9 +16,6 @@
 #define NAND_HDR_O3DS 1 
 #define NAND_HDR_N3DS 2
 
-// these offsets are used by Multi EmuNAND Creator / CakesFW
-#define EMUNAND_MULTI_SECTORS ((getMMCDevice(0)->total_size > 0x200000) ?  0x400000 : 0x200000)
-
 // minimum sizes for O3DS / N3DS NAND
 // see: http://3dbrew.org/wiki/Flash_Filesystem
 #define NAND_MIN_SIZE ((GetUnitPlatform() == PLATFORM_3DS) ? 0x3AF00000 : 0x4D800000)
@@ -74,12 +71,21 @@ static u32 emunand_header = 0;
 static u32 emunand_offset = 0;
 
 
+u32 GetEmuNandMultiSectors(void)
+{
+    u8* buffer = BUFFER_ADDRESS;
+    u32 compact_sectors = align(1 + (NAND_MIN_SIZE / NAND_SECTOR_SIZE), 0x2000);
+    u32 legacy_sectors = (getMMCDevice(0)->total_size > 0x200000) ? 0x400000 : 0x200000;
+    sdmmc_sdcard_readsectors(compact_sectors + 1, 1, buffer);
+    return (IS_NAND_HEADER(buffer)) ? compact_sectors : legacy_sectors;
+}
+
 u32 CheckEmuNand(void)
 {
     u8* buffer = BUFFER_ADDRESS;
     u32 nand_size_sectors = getMMCDevice(0)->total_size;
     u32 nand_size_sectors_min = NAND_MIN_SIZE / NAND_SECTOR_SIZE;
-    u32 multi_sectors = EMUNAND_MULTI_SECTORS;
+    u32 multi_sectors = GetEmuNandMultiSectors();
     u32 ret = EMUNAND_NOT_READY;
 
     // check the MBR for presence of a hidden partition
@@ -116,11 +122,12 @@ u32 SetNand(bool set_emunand, bool force_emunand)
         
         for (emunand_count = 0; (emunand_state >> (2 * emunand_count)) & 0x3; emunand_count++);
         if (emunand_count > 1) { // multiple EmuNANDs -> use selector
+            u32 multi_sectors = GetEmuNandMultiSectors();
             u32 emunand_no = 0;
             DebugColor(COLOR_ASK, "Use arrow keys and <A> to choose EmuNAND");
             while (true) {
                 u32 emunandn_state = (emunand_state >> (2 * emunand_no)) & 0x3;
-                offset_sector = emunand_no * EMUNAND_MULTI_SECTORS;
+                offset_sector = emunand_no * multi_sectors;
                 DebugColor(COLOR_SELECT, "\rEmuNAND #%u: %s", emunand_no, (emunandn_state == EMUNAND_READY) ? "EmuNAND ready" : (emunandn_state == EMUNAND_GATEWAY) ? "GW EmuNAND" : "RedNAND");
                 // user input routine
                 u32 pad_state = InputWait();
@@ -418,7 +425,7 @@ u32 OutputFileNameSelector(char* filename, const char* basename, char* extension
     snprintf(bases[3], 63, "%s%s" , (emunand_header) ? "emu" : "sys", bases[0]);
     
     u32 fn_id = (emunand_header) ? 1 : 0;
-    u32 fn_num = (emunand_header) ? (emunand_offset / EMUNAND_MULTI_SECTORS) : 0;
+    u32 fn_num = 0;
     bool exists = false;
     char extstr[16] = { 0 };
     if (extension)
@@ -703,7 +710,7 @@ u32 DumpNand(u32 param)
         }
         sha_update(buffer, NAND_SECTOR_SIZE * read_sectors);
     }
-
+    if (FileGetSize() < NAND_MIN_SIZE) result = 1; // very improbable
     ShowProgress(0, 0);
     FileClose();
     

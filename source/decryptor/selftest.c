@@ -199,6 +199,7 @@ u32 SystemInfo(u32 param)
     u8* nandcid = (u8*) 0x20316000 + 0x400;
     u8* sdcid = (u8*) 0x20316000 + 0x410;
     u8* twlcustid = (u8*) 0x01FFB808;
+    u8* mfg_date = (u8*) 0x01FFB81A;
     
     // Get NAND / SD CID
     sdmmc_get_cid(1, (uint32_t*) nandcid);
@@ -227,6 +228,8 @@ u32 SystemInfo(u32 param)
     // NAND stuff output here
     Debug("NAND type / size: %s %s / %lluMB", (isDevkit) ? "Devkit" : "Retail", (isN3ds) ? "N3DS" : "O3DS", nand_size / 0x100000);
     Debug("Serial / region: %.15s / %s", (char*) serial, (*region < 7) ? regionstr[*region] : regionstr[7]);
+    Debug("Manufacturing date: %u/%02u/%02u", *(mfg_date) + 1900, *(mfg_date + 1), *(mfg_date + 2));
+    // the next 3 bytes are hours, minutes, seconds but those were ommitted due to being superfluous info
     Debug("NAND CID: %08X%08X%08X%08X", getbe32(nandcid+0), getbe32(nandcid+4), getbe32(nandcid+8), getbe32(nandcid+12));
     Debug("TWL customer ID: %08X%08X", getbe32(twlcustid+0), getbe32(twlcustid+4));
     Debug("SysNAND SD path <id0> / <id1>:");
