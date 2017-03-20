@@ -1453,7 +1453,7 @@ u32 ConvertSdToCia(u32 param)
         
         // CIA stub
         u32 stub_size = BuildCiaStubTmd(stub, tmd, tmd_size);
-        if (stub_size == 0) {
+        if ((stub_size == 0) || (stub_size > 0x4000)) {
             Debug("Failed building the CIA stub");
             continue;
         }
