@@ -2151,6 +2151,7 @@ u32 DumpTwlGameCart(u32 param)
 
     memset (buff, 0x00, 0x8000);
 
+	Cart_Reset();
 
     NTR_CmdReadHeader (buff);
     if (buff[0] == 0x00) {
@@ -2198,8 +2199,7 @@ u32 DumpTwlGameCart(u32 param)
     
     if (isDSi) {
         // initialize cartridge
-        Cart_Init();
-        //Cart_GetID();
+        Cart_Reset();
         
         NTR_CmdReadHeader (dsibuff);
         
