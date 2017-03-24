@@ -37,7 +37,7 @@ CFLAGS	:=	-g -Wall -Wextra -Wpedantic -pedantic -O2\
 			-ffast-math -std=c99\
 			$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DEXEC_$(EXEC_METHOD) -DARM9 -D_GNU_SOURCE
+CFLAGS	+=	$(INCLUDE) -DARM9 -D_GNU_SOURCE
 
 CFLAGS	+=	-DBUILD_NAME="\"$(TARGET) (`date +'%Y/%m/%d'`)\""
 
@@ -59,7 +59,7 @@ endif
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 
-ASFLAGS	:=	-g $(ARCH) -DEXEC_$(EXEC_METHOD)
+ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-nostartfiles -g $(ARCH) --specs=../stub.specs -Wl,-Map,$(TARGET).map
 
 LIBS	:=
