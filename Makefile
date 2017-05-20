@@ -114,7 +114,7 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
-.PHONY: common clean all a9lh release
+.PHONY: common clean all a9lh firm release
 
 #---------------------------------------------------------------------------------
 all: a9lh
@@ -125,10 +125,15 @@ common:
 
 a9lh: common
 	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+
+firm: a9lh
+	@firmtool/firmtool build $(OUTPUT).firm -n 0x23F00000 -e 0 -D $(OUTPUT).bin -A 0x23F00000 -C NDMA -i
+
 	
-release: a9lh
+release: a9lh firm
 	@[ -d $(RELEASE) ] || mkdir -p $(RELEASE)
 	@cp $(OUTPUT).bin $(RELEASE)
+	@-cp $(OUTPUT).firm $(RELEASE)
 	@cp $(CURDIR)/README.md $(RELEASE)
 	@-[ ! -n "$(strip $(THEME))" ] || (mkdir $(RELEASE)/$(THEME) && cp $(CURDIR)/resources/$(THEME)/*.bin $(RELEASE)/$(THEME))
 	@-7z a $(RELEASE)/$(TARGET)-`date +'%Y%m%d-%H%M%S'`.zip $(RELEASE)/*
