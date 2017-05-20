@@ -1,5 +1,5 @@
 # Hourglass9
-_Noob friendly, safe, arm9loaderhax only NAND dumper & restorer for the 3DS console_
+_Noob friendly, safe, arm9loaderhax / sighax only NAND dumper & restorer for the 3DS console_
 
 ## What is this good for?
 

@@ -121,7 +121,7 @@ int main()
             "SysNAND Backup/Restore Options", 4, // ID 0
             {
                 { "SysNAND Backup",               DumpNandMinDesc,         &DumpNand,              NB_MINSIZE },
-                { "SysNAND Restore (keep a9lh)",  RestoreNandKeepHaxDesc,  &RestoreNand,           N_NANDWRITE | NR_KEEPA9LH },
+                { "SysNAND Restore (keep hax)",   RestoreNandKeepHaxDesc,  &RestoreNand,           N_NANDWRITE | NR_KEEPA9LH },
                 { "Health&Safety Dump",           HealthAndSafetyDesc,     &DumpHealthAndSafety,   0 },
                 { "Health&Safety Inject",         HealthAndSafetyDesc,     &InjectHealthAndSafety, N_NANDWRITE }
             }
