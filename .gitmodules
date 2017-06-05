@@ -1,4 +1,0 @@
-[submodule "firmtool"]
-	path = firmtool
-	url = https://github.com/TuxSH/firmtool.git
-	ignore = dirty
